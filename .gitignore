@@ -1,0 +1,12 @@
+node_modules/
+dist/
+uploads/
+.env
+.env.local
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+
+# Building CAD files can contain sensitive floor-plan data.
+*.dwg
