@@ -1,0 +1,409 @@
+import { AlertTriangle, CheckCircle2, Link2, LocateFixed, MapPlus, Route, Save, Trash2, Upload } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import type { AppState, Edge, Hazard, Node, PersonLocation, Point, RouteResult } from "../../shared/types";
+import { MapCanvas } from "./MapCanvas";
+
+interface AdminDashboardProps {
+  state: AppState;
+  nodeTypes: Node["type"][];
+  selectedNodeId?: string;
+  route?: RouteResult;
+  busy: boolean;
+  message: string;
+  placingNodeType: Node["type"] | null;
+  onSelectNode: (nodeId: string) => void;
+  onPlaceNodeType: (type: Node["type"] | null) => void;
+  onMapClick: (point: Point) => void;
+  onUpload: (file: File) => void;
+  onUpdateNode: (nodeId: string, patch: Partial<Omit<Node, "id">>) => void;
+  onDeleteNode: (nodeId: string) => void;
+  onCreateEdge: (edge: Omit<Edge, "id">) => void;
+  onDeleteEdge: (edgeId: string) => void;
+  onSimulateHazard: (hazard: Omit<Hazard, "id" | "createdAt">) => void;
+  onClearHazards: () => void;
+  onUpdatePerson: (personId: string, patch: Partial<Omit<PersonLocation, "id" | "updatedAt">>) => void;
+  onCalculateRoute: (payload: { personId?: string; startNodeId?: string }) => void;
+}
+
+export function AdminDashboard(props: AdminDashboardProps) {
+  const selectedNode = props.state.nodes.find((node) => node.id === props.selectedNodeId);
+  const activeHazards = props.state.hazards.filter((hazard) => hazard.active);
+
+  return (
+    <div className="dashboard-grid dashboard-grid--admin">
+      <section className="workspace">
+        <MapCanvas
+          state={props.state}
+          selectedNodeId={props.selectedNodeId}
+          route={props.route}
+          placingNodeType={props.placingNodeType}
+          onNodeSelect={props.onSelectNode}
+          onMapClick={props.onMapClick}
+        />
+      </section>
+
+      <aside className="control-stack">
+        <Panel title="Floor map" icon={<Upload size={18} />}>
+          <label className="file-drop">
+            <input
+              type="file"
+              accept=".dwg,.dxf,.svg,.png,.jpg,.jpeg"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) props.onUpload(file);
+              }}
+            />
+            <span>Upload DWG, DXF, SVG, PNG, JPG</span>
+            <small>DWG is stored and marked for converter setup when no local converter exists.</small>
+          </label>
+          <div className="info-list">
+            <span>Recommended DWG layers: WALLS, ROOMS, DOORS, STAIRS, EXITS, CAMERAS, SENSORS, BEACONS, QR_POINTS</span>
+            <span>Manual node editing stays available after every upload.</span>
+          </div>
+        </Panel>
+
+        <Panel title="Node editor" icon={<MapPlus size={18} />}>
+          <div className="field-row">
+            <label>
+              Add type
+              <select value={props.placingNodeType ?? ""} onChange={(event) => props.onPlaceNodeType((event.target.value || null) as Node["type"] | null)}>
+                <option value="">Select then click map</option>
+                {props.nodeTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type.replace("_", " ")}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {selectedNode ? (
+            <NodeForm node={selectedNode} nodeTypes={props.nodeTypes} onUpdate={props.onUpdateNode} onDelete={props.onDeleteNode} />
+          ) : (
+            <p className="muted">Select a node on the map to edit label, type, and coordinates.</p>
+          )}
+        </Panel>
+
+        <Panel title="Path graph" icon={<Link2 size={18} />}>
+          <EdgeForm nodes={props.state.nodes} onCreateEdge={props.onCreateEdge} />
+          <div className="edge-list">
+            {props.state.edges.slice(0, 8).map((edge) => (
+              <button key={edge.id} className="list-row" onClick={() => props.onDeleteEdge(edge.id)}>
+                <span>
+                  {labelFor(props.state.nodes, edge.from)} {"->"} {labelFor(props.state.nodes, edge.to)}
+                </span>
+                <Trash2 size={14} />
+              </button>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="Hazard simulator" icon={<AlertTriangle size={18} />}>
+          <HazardForm nodes={props.state.nodes} onSimulateHazard={props.onSimulateHazard} />
+          <button className="secondary-action" onClick={props.onClearHazards}>
+            Clear hazards
+          </button>
+          <div className="metric-strip">
+            <span>{activeHazards.length} active</span>
+            <span>{props.route?.blockedNodeIds.length ?? 0} blocked nodes</span>
+          </div>
+        </Panel>
+
+        <Panel title="People and route" icon={<LocateFixed size={18} />}>
+          <PeopleForm nodes={props.state.nodes} people={props.state.people} onUpdatePerson={props.onUpdatePerson} />
+          <RouteForm nodes={props.state.nodes} people={props.state.people} onCalculateRoute={props.onCalculateRoute} />
+          {props.route ? (
+            <div className={`route-result route-result--${props.route.status}`}>
+              <strong>{props.route.status === "ok" ? "Route calculated" : "Route unavailable"}</strong>
+              <span>{props.route.message}</span>
+            </div>
+          ) : null}
+        </Panel>
+
+        <Panel title="Final graph summary" icon={<CheckCircle2 size={18} />}>
+          <div className="summary-grid">
+            <span>{props.state.nodes.length} nodes</span>
+            <span>{props.state.edges.length} edges</span>
+            <span>{props.state.nodes.filter((node) => node.type === "exit").length} exits</span>
+            <span>{props.state.nodes.filter((node) => node.type === "sensor" || node.type === "camera").length} devices</span>
+          </div>
+          <div className="node-table">
+            {props.state.nodes.map((node) => (
+              <button key={node.id} onClick={() => props.onSelectNode(node.id)}>
+                <span>{node.label}</span>
+                <small>{node.type.replace("_", " ")}</small>
+              </button>
+            ))}
+          </div>
+          <button className="primary-action primary-action--wide" disabled={props.busy}>
+            <Save size={16} />
+            Graph ready for simulation
+          </button>
+          {props.message ? <p className="status-message">{props.message}</p> : null}
+        </Panel>
+      </aside>
+    </div>
+  );
+}
+
+function Panel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+  return (
+    <section className="panel">
+      <h3>
+        {icon}
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+function NodeForm({
+  node,
+  nodeTypes,
+  onUpdate,
+  onDelete
+}: {
+  node: Node;
+  nodeTypes: Node["type"][];
+  onUpdate: AdminDashboardProps["onUpdateNode"];
+  onDelete: AdminDashboardProps["onDeleteNode"];
+}) {
+  return (
+    <div className="form-grid">
+      <label>
+        Label
+        <input value={node.label} onChange={(event) => onUpdate(node.id, { label: event.target.value })} />
+      </label>
+      <label>
+        Type
+        <select value={node.type} onChange={(event) => onUpdate(node.id, { type: event.target.value as Node["type"] })}>
+          {nodeTypes.map((type) => (
+            <option key={type} value={type}>
+              {type.replace("_", " ")}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        X
+        <input type="number" value={node.x} onChange={(event) => onUpdate(node.id, { x: Number(event.target.value) })} />
+      </label>
+      <label>
+        Y
+        <input type="number" value={node.y} onChange={(event) => onUpdate(node.id, { y: Number(event.target.value) })} />
+      </label>
+      <button className="danger-action" onClick={() => onDelete(node.id)}>
+        <Trash2 size={16} />
+        Delete node
+      </button>
+    </div>
+  );
+}
+
+function EdgeForm({ nodes, onCreateEdge }: { nodes: Node[]; onCreateEdge: AdminDashboardProps["onCreateEdge"] }) {
+  const first = nodes[0]?.id ?? "";
+  const second = nodes[1]?.id ?? first;
+  const [from, setFrom] = useLocal(first);
+  const [to, setTo] = useLocal(second);
+  const [distance, setDistance] = useLocal<string>("8");
+
+  return (
+    <div className="form-grid">
+      <label>
+        From
+        <select value={from} onChange={(event) => setFrom(event.target.value)}>
+          {nodes.map((node) => (
+            <option key={node.id} value={node.id}>
+              {node.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        To
+        <select value={to} onChange={(event) => setTo(event.target.value)}>
+          {nodes.map((node) => (
+            <option key={node.id} value={node.id}>
+              {node.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Distance
+        <input type="number" min="1" value={distance} onChange={(event) => setDistance(event.target.value)} />
+      </label>
+      <button className="secondary-action" onClick={() => from !== to && onCreateEdge({ from, to, distance: Number(distance), status: "open" })}>
+        Add connection
+      </button>
+    </div>
+  );
+}
+
+function HazardForm({ nodes, onSimulateHazard }: { nodes: Node[]; onSimulateHazard: AdminDashboardProps["onSimulateHazard"] }) {
+  const [nodeId, setNodeId] = useLocal(nodes[0]?.id ?? "");
+  const [type, setType] = useLocal<Hazard["type"]>("fire");
+  const [severity, setSeverity] = useLocal<Hazard["severity"]>("high");
+  const [radius, setRadius] = useLocal<string>("95");
+  const node = nodes.find((item) => item.id === nodeId) ?? nodes[0];
+
+  return (
+    <div className="form-grid">
+      <label>
+        Location
+        <select value={nodeId} onChange={(event) => setNodeId(event.target.value)}>
+          {nodes.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Type
+        <select value={type} onChange={(event) => setType(event.target.value as Hazard["type"])}>
+          {["fire", "smoke", "gas", "structural", "security", "other"].map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Severity
+        <select value={severity} onChange={(event) => setSeverity(event.target.value as Hazard["severity"])}>
+          {["low", "medium", "high", "critical"].map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Radius
+        <input value={radius} type="number" min="20" onChange={(event) => setRadius(event.target.value)} />
+      </label>
+      <button
+        className="danger-action"
+        onClick={() =>
+          node &&
+          onSimulateHazard({
+            type,
+            severity,
+            radius: Number(radius),
+            label: `${type} at ${node.label}`,
+            nodeId: node.id,
+            x: node.x,
+            y: node.y,
+            active: true
+          })
+        }
+      >
+        Simulate hazard
+      </button>
+    </div>
+  );
+}
+
+function PeopleForm({
+  nodes,
+  people,
+  onUpdatePerson
+}: {
+  nodes: Node[];
+  people: PersonLocation[];
+  onUpdatePerson: AdminDashboardProps["onUpdatePerson"];
+}) {
+  const [personId, setPersonId] = useLocal(people[0]?.id ?? "");
+  const person = people.find((item) => item.id === personId) ?? people[0];
+
+  if (!person) return null;
+
+  return (
+    <div className="form-grid">
+      <label>
+        Person
+        <select value={person.id} onChange={(event) => setPersonId(event.target.value)}>
+          {people.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        BLE estimate
+        <select value={person.bleNodeId ?? ""} onChange={(event) => onUpdatePerson(person.id, { bleNodeId: event.target.value || undefined })}>
+          <option value="">Unknown</option>
+          {nodes.map((node) => (
+            <option key={node.id} value={node.id}>
+              {node.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        QR confirmed
+        <select value={person.qrNodeId ?? ""} onChange={(event) => onUpdatePerson(person.id, { qrNodeId: event.target.value || undefined })}>
+          <option value="">Not scanned</option>
+          {nodes.map((node) => (
+            <option key={node.id} value={node.id}>
+              {node.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+}
+
+function RouteForm({
+  nodes,
+  people,
+  onCalculateRoute
+}: {
+  nodes: Node[];
+  people: PersonLocation[];
+  onCalculateRoute: AdminDashboardProps["onCalculateRoute"];
+}) {
+  const [personId, setPersonId] = useLocal(people[0]?.id ?? "");
+  const [startNodeId, setStartNodeId] = useLocal<string>("");
+
+  return (
+    <div className="form-grid">
+      <label>
+        Route person
+        <select value={personId} onChange={(event) => setPersonId(event.target.value)}>
+          {people.map((person) => (
+            <option key={person.id} value={person.id}>
+              {person.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Or start node
+        <select value={startNodeId} onChange={(event) => setStartNodeId(event.target.value)}>
+          <option value="">Use person BLE/QR</option>
+          {nodes.map((node) => (
+            <option key={node.id} value={node.id}>
+              {node.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button className="primary-action primary-action--wide" onClick={() => onCalculateRoute(startNodeId ? { startNodeId } : { personId })}>
+        <Route size={16} />
+        Calculate safest path
+      </button>
+    </div>
+  );
+}
+
+function labelFor(nodes: Node[], id: string): string {
+  return nodes.find((node) => node.id === id)?.label ?? id;
+}
+
+function useLocal<T extends string>(initial: T): [T, (value: T) => void] {
+  return useState(initial);
+}
