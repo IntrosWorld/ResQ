@@ -52,6 +52,13 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    window.scrollTo({ top: 0, left: 0 });
+  }, []);
+
+  useEffect(() => {
     run("Loaded SafePath demo state.", async () => {
       const response = await bootstrap();
       setState(response.state);

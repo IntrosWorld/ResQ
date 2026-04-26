@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, Building2, Route, ShieldAlert } from "lucide-react";
+import { ArrowRight, Bot, Building2, Map, Radio, Route, ShieldAlert } from "lucide-react";
 
 interface HeroProps {
   onStart: () => void;
@@ -6,49 +6,86 @@ interface HeroProps {
 
 export function Hero({ onStart }: HeroProps) {
   return (
-    <section className="hero">
-      <div className="hero__visual" aria-hidden="true">
-        <div className="hero-map">
-          <span className="hero-map__room room-a" />
-          <span className="hero-map__room room-b" />
-          <span className="hero-map__room room-c" />
-          <span className="hero-map__corridor" />
-          <span className="hero-map__route" />
-          <span className="hero-map__hazard" />
-          <span className="hero-map__exit exit-a" />
-          <span className="hero-map__exit exit-b" />
+    <header className="hero" role="banner">
+      <div className="hero__scene" aria-hidden="true">
+        <div className="hero-floor">
+          <span className="hero-wall hero-wall--outer" />
+          <span className="hero-room hero-room--101" />
+          <span className="hero-room hero-room--102" />
+          <span className="hero-room hero-room--201" />
+          <span className="hero-room hero-room--202" />
+          <span className="hero-corridor hero-corridor--main" />
+          <span className="hero-corridor hero-corridor--cross" />
+          <span className="hero-route hero-route--a" />
+          <span className="hero-route hero-route--b" />
+          <span className="hero-node hero-node--start" />
+          <span className="hero-node hero-node--junction" />
+          <span className="hero-node hero-node--exit" />
+          <span className="hero-hazard" />
+          <span className="hero-exit hero-exit--west" />
+          <span className="hero-exit hero-exit--east" />
+          <span className="hero-sensor hero-sensor--camera" />
+          <span className="hero-sensor hero-sensor--ble" />
         </div>
       </div>
+
+      <nav className="hero-nav" aria-label="Homepage">
+        <div className="hero-brand">
+          <ShieldAlert size={19} />
+          <span>SafePath AI</span>
+        </div>
+        <div className="hero-nav__links">
+          <span>Map setup</span>
+          <span>Live routing</span>
+          <span>Edge AI</span>
+        </div>
+        <button className="hero-nav__button" onClick={onStart}>
+          Console
+        </button>
+      </nav>
+
       <div className="hero__content">
         <div className="eyebrow">
-          <ShieldAlert size={16} />
-          Indoor crisis routing
+          <Radio size={16} />
+          AI evacuation routing for hotels and large buildings
         </div>
         <h1>SafePath AI</h1>
         <p>
-          Upload a floor plan, mark critical nodes, simulate BLE/QR locations, trigger hazards, and calculate safer evacuation routes from one command surface.
+          Convert a building floor plan into an emergency graph, locate people with BLE and QR checkpoints, simulate hazards, and guide every role toward safer exits.
         </p>
         <div className="hero__actions">
           <button className="primary-action" onClick={onStart}>
-            Open dashboard
+            Open command center
             <ArrowRight size={18} />
           </button>
           <div className="hero__stats">
             <span>
-              <Building2 size={16} />
-              DWG/DXF-ready
+              <Map size={16} />
+              DWG/DXF map intake
             </span>
             <span>
               <Route size={16} />
-              Graph routing
+              Safer path calculation
             </span>
             <span>
               <Bot size={16} />
-              Edge AI events
+              Camera and sensor events
             </span>
           </div>
         </div>
       </div>
-    </section>
+
+      <div className="hero__operations" aria-hidden="true">
+        <span>
+          <Building2 size={15} />
+          Floor 1 graph online
+        </span>
+        <span>3 occupants tracked</span>
+        <span>2 exits available</span>
+        <span>1 hazard isolated</span>
+      </div>
+
+      <div className="hero__handoff">Dashboard preview below</div>
+    </header>
   );
 }
