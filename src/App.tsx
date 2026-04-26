@@ -16,7 +16,7 @@ import {
 } from "./client/api";
 import { AdminDashboard } from "./client/components/AdminDashboard";
 import { ClerkDashboard } from "./client/components/ClerkDashboard";
-import { Hero } from "./client/components/Hero";
+import { HomePage } from "./client/components/HomePage";
 import { Layout } from "./client/components/Layout";
 import { UserDashboard } from "./client/components/UserDashboard";
 
@@ -45,6 +45,7 @@ export default function App() {
   const [route, setRoute] = useState<RouteResult | undefined>();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [path, setPath] = useState(() => window.location.pathname);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -55,7 +56,13 @@ export default function App() {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
-    window.scrollTo({ top: 0, left: 0 });
+    safeScrollToTop();
+  }, []);
+
+  useEffect(() => {
+    const onPopState = () => setPath(window.location.pathname);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
   useEffect(() => {
@@ -169,10 +176,25 @@ export default function App() {
     });
   }
 
+  function navigate(to: string) {
+    window.history.pushState({}, "", to);
+    setPath(to);
+    safeScrollToTop();
+  }
+
+  if (!path.startsWith("/dashboard")) {
+    return <HomePage theme={theme} onThemeToggle={() => setTheme(theme === "dark" ? "light" : "dark")} onDashboard={() => navigate("/dashboard")} />;
+  }
+
   return (
-    <>
-      <Hero onStart={() => document.getElementById("dashboard")?.scrollIntoView({ behavior: "smooth" })} />
-      <Layout role={role} theme={theme} onRoleChange={setRole} onThemeToggle={() => setTheme(theme === "dark" ? "light" : "dark")}>
+    <div className="dashboard-page">
+      <Layout
+        role={role}
+        theme={theme}
+        onRoleChange={setRole}
+        onThemeToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
+        onHome={() => navigate("/")}
+      >
         {role === "admin" ? (
           <AdminDashboard
             state={state}
@@ -210,6 +232,18 @@ export default function App() {
           />
         ) : null}
       </Layout>
-    </>
+    </div>
   );
+}
+
+function safeScrollToTop() {
+  if (typeof navigator !== "undefined" && navigator.userAgent.toLowerCase().includes("jsdom")) {
+    return;
+  }
+
+  try {
+    window.scrollTo({ top: 0, left: 0 });
+  } catch {
+    // Test environments may not implement scrolling.
+  }
 }
