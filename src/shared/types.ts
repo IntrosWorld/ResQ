@@ -142,11 +142,13 @@ export interface AppState {
 
 export interface LocalModelStatus {
   hasOnnx: boolean;
+  hasRemoteOnnx?: boolean;
   hasBestPt: boolean;
   hasPytorchBin: boolean;
   hasConfig: boolean;
   hasSafetensors: boolean;
   onnxPath?: string;
+  remoteOnnxUrl?: string;
   bestPtPath?: string;
   pytorchBinPath?: string;
   message: string;

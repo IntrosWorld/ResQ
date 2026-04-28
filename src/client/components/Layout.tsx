@@ -1,4 +1,4 @@
-import { Bell, Bot, House, LayoutDashboard, Moon, ScanEye, ShieldAlert, Sun, UserSearch } from "lucide-react";
+import { BarChart3, Bell, Bot, House, LayoutDashboard, Moon, ScanEye, ShieldAlert, Sun, UserSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import type { SystemNotification } from "../../shared/types";
 
@@ -12,8 +12,10 @@ interface LayoutProps {
   onCollapse?: () => void;
   onRestricted?: () => void;
   onAssistant?: () => void;
+  onAnalytics?: () => void;
+  onSwitchMode?: () => void;
   onDashboard?: () => void;
-  activeView?: "dashboard" | "cctv" | "collapse" | "restricted" | "assistant";
+  activeView?: "dashboard" | "cctv" | "collapse" | "restricted" | "assistant" | "analytics";
   notifications?: SystemNotification[];
   onNotificationClick?: () => void;
   children: ReactNode;
@@ -31,6 +33,8 @@ export function Layout({
   onCollapse,
   onRestricted,
   onAssistant,
+  onAnalytics,
+  onSwitchMode,
   onDashboard,
   activeView = "dashboard",
   notifications = [],
@@ -43,8 +47,8 @@ export function Layout({
     <main className="shell" id="dashboard">
       <header className="topbar">
         <div>
-          <p className="topbar__kicker">ResQ</p>
-          <h2>Building Response Console</h2>
+          <p className="topbar__kicker">{theme === "dark" ? "ResQFacility" : "ResQ"}</p>
+          <h2>{theme === "dark" ? "Local Building Command" : "Building Response Console"}</h2>
         </div>
         <div className="topbar-actions">
           {onHome ? (
@@ -81,6 +85,18 @@ export function Layout({
             <button className={activeView === "assistant" ? "home-button active" : "home-button"} onClick={onAssistant}>
               <Bot size={17} />
               Assistant
+            </button>
+          ) : null}
+          {onAnalytics ? (
+            <button className={activeView === "analytics" ? "home-button active" : "home-button"} onClick={onAnalytics}>
+              <BarChart3 size={17} />
+              Analytics
+            </button>
+          ) : null}
+          {onSwitchMode ? (
+            <button className="home-button" onClick={onSwitchMode}>
+              <LayoutDashboard size={17} />
+              Modes
             </button>
           ) : null}
         </div>

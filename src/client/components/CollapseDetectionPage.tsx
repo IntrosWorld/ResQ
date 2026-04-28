@@ -55,6 +55,7 @@ export function CollapseDetectionPage({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const selectedCamera = state.nodes.find((node) => node.id === cameraNodeId) ?? cameraNodes[0];
   const detectedLocation = resolveDetectedLocation(selectedCamera, mapNodes, selectedNodeId);
+  const hasModelSource = Boolean(localModelStatus?.hasOnnx || localModelStatus?.hasRemoteOnnx);
 
   const detectionRows = useMemo(
     () => [
@@ -68,13 +69,13 @@ export function CollapseDetectionPage({
   );
 
   useEffect(() => {
-    if (!localModelStatus?.hasOnnx || hasLoadedYoloCollapseModel() || autoLoadAttemptedRef.current) {
+    if (!hasModelSource || hasLoadedYoloCollapseModel() || autoLoadAttemptedRef.current) {
       return;
     }
 
     autoLoadAttemptedRef.current = true;
     void handleLoadLocalOnnx();
-  }, [localModelStatus?.hasOnnx]);
+  }, [hasModelSource]);
 
   useEffect(() => {
     if (!monitoring) {
@@ -131,11 +132,11 @@ export function CollapseDetectionPage({
     setModelStatus("Loading local FallSafe ONNX model...");
     try {
       await loadYoloCollapseModelFromUrl("/api/models/fallsafe/model.onnx");
-      setModelName("fallsafe_model_bin/model.onnx");
-      setModelStatus("Local FallSafe ONNX loaded. Uploaded video detection will use browser inference.");
+      setModelName(localModelStatus?.hasOnnx ? "fallsafe_model_bin/resq-fallsafe-collapse.onnx" : localModelStatus?.remoteOnnxUrl ?? "Hugging Face FallSafe ONNX");
+      setModelStatus("FallSafe ONNX loaded. Uploaded video detection will use browser inference.");
     } catch (error) {
       setModelStatus("Local FallSafe model failed to load.");
-      setLocalError(error instanceof Error ? error.message : "Could not load fallsafe_model_bin/model.onnx.");
+      setLocalError(error instanceof Error ? error.message : "Could not load fallsafe_model_bin/resq-fallsafe-collapse.onnx.");
     }
   }
 
@@ -163,7 +164,7 @@ export function CollapseDetectionPage({
     }
 
     if (!hasLoadedYoloCollapseModel()) {
-      setLocalError("Local FallSafe model.onnx could not be loaded. Export model/model.pt to fallsafe_model_bin/model.onnx.");
+      setLocalError("Local FallSafe ONNX could not be loaded. Export model/model.pt to fallsafe_model_bin/resq-fallsafe-collapse.onnx.");
       return;
     }
 
@@ -307,9 +308,9 @@ export function CollapseDetectionPage({
                 <span>Upload FallSafe YOLO11 ONNX</span>
                 <small>{modelName || "Export FallSafe model/model.pt to ONNX"}</small>
               </label>
-              {localModelStatus?.hasOnnx ? (
+              {hasModelSource ? (
                 <button className="secondary-action" onClick={() => void handleLoadLocalOnnx()}>
-                  Load local FallSafe model.onnx
+                  Load FallSafe ONNX
                 </button>
               ) : null}
               <div className="info-list">

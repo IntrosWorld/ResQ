@@ -52,6 +52,7 @@ export function CctvSimulationPage({
   const selectedNode = state.nodes.find((node) => node.id === selectedNodeId) ?? hazardNodes[0];
   const selectedCamera = state.nodes.find((node) => node.id === cameraNodeId) ?? cameraNodes[0];
   const startNode = state.nodes.find((node) => node.id === startNodeId) ?? state.nodes[0];
+  const hasModelSource = Boolean(localModelStatus?.hasOnnx || localModelStatus?.hasRemoteOnnx);
 
   const detectionRows = useMemo(
     () => [
@@ -65,13 +66,13 @@ export function CctvSimulationPage({
   );
 
   useEffect(() => {
-    if (!localModelStatus?.hasOnnx || hasLoadedYoloHazardModel() || autoLoadAttemptedRef.current) {
+    if (!hasModelSource || hasLoadedYoloHazardModel() || autoLoadAttemptedRef.current) {
       return;
     }
 
     autoLoadAttemptedRef.current = true;
     void handleLoadLocalOnnx();
-  }, [localModelStatus?.hasOnnx]);
+  }, [hasModelSource]);
 
   useEffect(() => {
     if (!monitoring) {
@@ -194,8 +195,8 @@ export function CctvSimulationPage({
     setModelStatus("Loading local ONNX model...");
     try {
       await loadYoloHazardModelFromUrl("/api/models/local-yolo/model.onnx");
-      setModelName("yolo_model_bin/model.onnx");
-      setModelStatus("Local ONNX model loaded. Uploaded video detection will use real browser inference.");
+      setModelName(localModelStatus?.hasOnnx ? "yolo_model_bin/resq-fire-smoke-yolo.onnx" : localModelStatus?.remoteOnnxUrl ?? "Hugging Face fire-smoke ONNX");
+      setModelStatus("ONNX model loaded. Uploaded video detection will use real browser inference.");
     } catch (error) {
       setModelStatus("Local ONNX model failed to load.");
       setLocalError(error instanceof Error ? error.message : "Could not load local ONNX model.");
@@ -226,7 +227,7 @@ export function CctvSimulationPage({
     }
 
     if (!hasLoadedYoloHazardModel()) {
-      setLocalError("Local model.onnx could not be loaded. Check yolo_model_bin/model.onnx.");
+      setLocalError("Local ONNX could not be loaded. Check yolo_model_bin/resq-fire-smoke-yolo.onnx.");
       return;
     }
 
@@ -348,9 +349,9 @@ export function CctvSimulationPage({
               <span>Upload fire/smoke YOLO ONNX</span>
               <small>{modelName || "Export a trained YOLO fire-smoke model to ONNX"}</small>
             </label>
-            {localModelStatus?.hasOnnx ? (
+            {hasModelSource ? (
               <button className="secondary-action" onClick={() => void handleLoadLocalOnnx()}>
-                Load local model.onnx
+                Load fire-smoke ONNX
               </button>
             ) : null}
             <div className="info-list">

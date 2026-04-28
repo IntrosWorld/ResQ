@@ -146,7 +146,6 @@ export function MapCanvas({
   }
 
   function handleWheel(event: WheelEvent<SVGSVGElement>) {
-    event.preventDefault();
     const center = mapPointFromEvent(event) ?? viewBoxCenter(viewBox);
     zoom(event.deltaY < 0 ? 0.86 : 1.16, center);
   }

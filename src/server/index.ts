@@ -14,6 +14,12 @@ import { edgePatchSchema, edgeSchema, hazardSchema, nodePatchSchema, nodeSchema,
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "../..");
+const MODEL_FILES = {
+  fireSmoke: "resq-fire-smoke-yolo.onnx",
+  fallsafeCollapse: "resq-fallsafe-collapse.onnx",
+  personCoco: "resq-person-coco.onnx"
+} as const;
+const HF_MODEL_BASE_URL = (process.env.HF_MODEL_BASE_URL ?? "https://huggingface.co/Snaptrope/resq/resolve/main").replace(/\/$/, "");
 const uploadDir = path.join(rootDir, "uploads");
 await mkdir(uploadDir, { recursive: true });
 
@@ -68,7 +74,7 @@ app.get("/api/bootstrap", (_req, res) => {
 
 app.get("/api/models/local-yolo/status", async (_req, res) => {
   const modelDir = path.join(rootDir, "yolo_model_bin");
-  const onnxPath = path.join(modelDir, "model.onnx");
+  const onnxPath = path.join(modelDir, MODEL_FILES.fireSmoke);
   const bestPtPath = path.join(modelDir, "best.pt");
   const pytorchBinPath = path.join(modelDir, "pytorch_model.bin");
   const configPath = path.join(modelDir, "config.json");
@@ -83,95 +89,86 @@ app.get("/api/models/local-yolo/status", async (_req, res) => {
 
   res.json({
     hasOnnx,
+    hasRemoteOnnx: true,
     hasBestPt,
     hasPytorchBin,
     hasConfig,
     hasSafetensors,
     onnxPath: hasOnnx ? onnxPath : undefined,
+    remoteOnnxUrl: getRemoteModelUrl(MODEL_FILES.fireSmoke),
     bestPtPath: hasBestPt ? bestPtPath : undefined,
     pytorchBinPath: hasPytorchBin ? pytorchBinPath : undefined,
     message: hasOnnx
       ? "Local ONNX model found. The CCTV page can use this model directly."
       : hasBestPt
-        ? "best.pt found. Export it with Ultralytics to yolo_model_bin/model.onnx for browser inference."
+        ? `best.pt found. Export it with Ultralytics to yolo_model_bin/${MODEL_FILES.fireSmoke} for browser inference.`
         : hasPytorchBin || hasSafetensors || hasConfig
-          ? "Hugging Face model files found, but browser inference needs model.onnx. For this repo, best.pt is the easiest file to export."
-          : "No local YOLO model found in yolo_model_bin."
+          ? `Hugging Face model files found, but browser inference needs ${MODEL_FILES.fireSmoke}. For this repo, best.pt is the easiest file to export.`
+          : `No local YOLO model found in yolo_model_bin. The app will load ${MODEL_FILES.fireSmoke} from Hugging Face.`
   });
 });
 
 app.get("/api/models/local-yolo/model.onnx", async (_req, res) => {
-  const onnxPath = path.join(rootDir, "yolo_model_bin", "model.onnx");
-  if (!(await fileExists(onnxPath))) {
-    res.status(404).json({ error: "Local model.onnx not found. Export your PyTorch YOLO weights to yolo_model_bin/model.onnx first." });
-    return;
-  }
-
-  res.sendFile(onnxPath);
+  const onnxPath = path.join(rootDir, "yolo_model_bin", MODEL_FILES.fireSmoke);
+  await sendLocalOrRemoteModel(res, onnxPath, MODEL_FILES.fireSmoke);
 });
 
 app.get("/api/models/fallsafe/status", async (_req, res) => {
   const modelDir = path.join(rootDir, "fallsafe_model_bin");
-  const onnxPath = path.join(modelDir, "model.onnx");
+  const onnxPath = path.join(modelDir, MODEL_FILES.fallsafeCollapse);
   const ptPath = path.join(modelDir, "model.pt");
   const [hasOnnx, hasBestPt] = await Promise.all([fileExists(onnxPath), fileExists(ptPath)]);
 
   res.json({
     hasOnnx,
+    hasRemoteOnnx: true,
     hasBestPt,
     hasPytorchBin: false,
     hasConfig: false,
     hasSafetensors: false,
     onnxPath: hasOnnx ? onnxPath : undefined,
+    remoteOnnxUrl: getRemoteModelUrl(MODEL_FILES.fallsafeCollapse),
     bestPtPath: hasBestPt ? ptPath : undefined,
     message: hasOnnx
       ? "Local FallSafe ONNX model found. The collapse page can use this model directly."
       : hasBestPt
-        ? "FallSafe model.pt found. Export it to fallsafe_model_bin/model.onnx for browser inference."
-        : "No local FallSafe model found in fallsafe_model_bin. Download FallSafe/FallSafe-yolo11 model/model.pt and export it to ONNX."
+        ? `FallSafe model.pt found. Export it to fallsafe_model_bin/${MODEL_FILES.fallsafeCollapse} for browser inference.`
+        : `No local FallSafe model found in fallsafe_model_bin. The app will load ${MODEL_FILES.fallsafeCollapse} from Hugging Face.`
   });
 });
 
 app.get("/api/models/fallsafe/model.onnx", async (_req, res) => {
-  const onnxPath = path.join(rootDir, "fallsafe_model_bin", "model.onnx");
-  if (!(await fileExists(onnxPath))) {
-    res.status(404).json({ error: "Local FallSafe model.onnx not found. Export FallSafe model.pt to fallsafe_model_bin/model.onnx first." });
-    return;
-  }
-
-  res.sendFile(onnxPath);
+  const onnxPath = path.join(rootDir, "fallsafe_model_bin", MODEL_FILES.fallsafeCollapse);
+  await sendLocalOrRemoteModel(res, onnxPath, MODEL_FILES.fallsafeCollapse);
 });
 
 app.get("/api/models/person-coco/status", async (_req, res) => {
   const modelDir = path.join(rootDir, "person_model_bin");
-  const onnxPath = path.join(modelDir, "model.onnx");
+  const onnxPath = path.join(modelDir, MODEL_FILES.personCoco);
   const ptPath = path.join(modelDir, "model.pt");
   const [hasOnnx, hasBestPt] = await Promise.all([fileExists(onnxPath), fileExists(ptPath)]);
 
   res.json({
     hasOnnx,
+    hasRemoteOnnx: true,
     hasBestPt,
     hasPytorchBin: false,
     hasConfig: false,
     hasSafetensors: false,
     onnxPath: hasOnnx ? onnxPath : undefined,
+    remoteOnnxUrl: getRemoteModelUrl(MODEL_FILES.personCoco),
     bestPtPath: hasBestPt ? ptPath : undefined,
     message: hasOnnx
       ? "Local COCO person ONNX model found. The restricted-area page can use this model directly."
       : hasBestPt
-        ? "COCO person model.pt found. Export it to person_model_bin/model.onnx for browser inference."
-        : "No local COCO person model found in person_model_bin. Export YOLO11n or YOLOv8n pretrained COCO weights to ONNX."
+        ? `COCO person model.pt found. Export it to person_model_bin/${MODEL_FILES.personCoco} for browser inference.`
+        : `No local COCO person model found in person_model_bin. The app will load ${MODEL_FILES.personCoco} from Hugging Face.`
   });
 });
 
 app.get("/api/models/person-coco/model.onnx", async (_req, res) => {
-  const onnxPath = path.join(rootDir, "person_model_bin", "model.onnx");
-  if (!(await fileExists(onnxPath))) {
-    res.status(404).json({ error: "Local COCO person model.onnx not found. Export YOLO11n or YOLOv8n to person_model_bin/model.onnx first." });
-    return;
-  }
-
-  res.sendFile(onnxPath);
+  const onnxPath = path.join(rootDir, "person_model_bin", MODEL_FILES.personCoco);
+  await sendLocalOrRemoteModel(res, onnxPath, MODEL_FILES.personCoco);
 });
 
 app.post("/api/cad/upload", upload.single("floorMap"), async (req, res, next) => {
@@ -457,6 +454,19 @@ async function fileExists(filePath: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+function getRemoteModelUrl(fileName: string): string {
+  return `${HF_MODEL_BASE_URL}/${fileName}`;
+}
+
+async function sendLocalOrRemoteModel(res: express.Response, localPath: string, fileName: string): Promise<void> {
+  if (await fileExists(localPath)) {
+    res.sendFile(localPath);
+    return;
+  }
+
+  res.redirect(302, getRemoteModelUrl(fileName));
 }
 
 function fallbackAssistantReply(message: string, mapAction?: AssistantMapAction): string {

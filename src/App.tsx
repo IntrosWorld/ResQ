@@ -26,11 +26,21 @@ import { AssistantMapPage } from "./client/components/AssistantMapPage";
 import { StaffDashboard } from "./client/components/StaffDashboard";
 import { CctvSimulationPage } from "./client/components/CctvSimulationPage";
 import { CollapseDetectionPage } from "./client/components/CollapseDetectionPage";
-import { HomePage } from "./client/components/HomePage";
 import { Layout } from "./client/components/Layout";
 import { NotificationCenter } from "./client/components/NotificationCenter";
 import { RestrictedAreaPage } from "./client/components/RestrictedAreaPage";
 import { UserDashboard } from "./client/components/UserDashboard";
+import { BorrowHomePage } from "./client/components/BorrowHomePage";
+import { LoginPage } from "./client/components/LoginPage";
+import { AnalyticsPage } from "./client/components/AnalyticsPage";
+import { ModeSelectorPage } from "./client/components/ModeSelectorPage";
+import { CityDashboardsPage } from "./client/components/borrow/CityDashboardsPage";
+import FireEmergencyDashboard from "./client/components/borrow/dashboards/FireEmergencyDashboard";
+import SecurityDashboard from "./client/components/borrow/dashboards/SecurityDashboard";
+import MedicalDashboard from "./client/components/borrow/dashboards/MedicalDashboard";
+import DisasterManagementDashboard from "./client/components/borrow/dashboards/DisasterManagementDashboard";
+import OperationalCenterDashboard from "./client/components/borrow/dashboards/OperationalCenterDashboard";
+import UnifiedCommandDashboard from "./client/components/borrow/dashboards/UnifiedCommandDashboard";
 
 const defaultNodeTypes: Node["type"][] = [
   "room",
@@ -50,6 +60,7 @@ const defaultNodeTypes: Node["type"][] = [
 export default function App() {
   const [state, setState] = useState<AppState>(() => createSampleState());
   const [nodeTypes, setNodeTypes] = useState<Node["type"][]>(defaultNodeTypes);
+  const [authenticated, setAuthenticated] = useState(false);
   const [role, setRole] = useState<"admin" | "staff" | "user">("admin");
   const [theme, setTheme] = useState<"light" | "dark">(() => (localStorage.getItem("resq-theme") as "light" | "dark") || "dark");
   const [selectedNodeId, setSelectedNodeId] = useState<string>("junction-main");
@@ -297,10 +308,59 @@ export default function App() {
   const isCollapsePage = path.startsWith("/dashboard/collapse");
   const isRestrictedPage = path.startsWith("/dashboard/restricted");
   const isAssistantPage = path.startsWith("/dashboard/assistant");
-  const isToolPage = isCctvPage || isCollapsePage || isRestrictedPage || isAssistantPage;
+  const isAnalyticsPage = path.startsWith("/dashboard/analytics");
+  const isToolPage = isCctvPage || isCollapsePage || isRestrictedPage || isAssistantPage || isAnalyticsPage;
+  const isCityPage = path === "/city" || path.startsWith("/city/");
+
+  function handleLogin(loginRole: "admin" | "staff" | "user") {
+    setAuthenticated(true);
+    setRole(loginRole);
+    if (loginRole === "user") {
+      navigate("/dashboard");
+    } else {
+      navigate("/select-mode");
+    }
+  }
+
+  if (path === "/login") {
+    return <LoginPage onLogin={handleLogin} onHome={() => navigate("/")} />;
+  }
+
+  if (authenticated && path === "/select-mode") {
+    return (
+      <ModeSelectorPage
+        role={role}
+        onLocalBuilding={() => navigate("/dashboard")}
+        onCityWide={() => navigate("/city")}
+      />
+    );
+  }
+
+  if (isCityPage) {
+    if (path === "/city/fire") {
+      return <FireEmergencyDashboard />;
+    }
+    if (path === "/city/security") {
+      return <SecurityDashboard />;
+    }
+    if (path === "/city/medical") {
+      return <MedicalDashboard />;
+    }
+    if (path === "/city/disaster") {
+      return <DisasterManagementDashboard />;
+    }
+    if (path === "/city/cctv") {
+      return <OperationalCenterDashboard />;
+    }
+    if (path === "/city/unified") {
+      return <UnifiedCommandDashboard />;
+    }
+
+    return <CityDashboardsPage onNavigate={navigate} onBackToModes={authenticated && role !== "user" ? () => navigate("/select-mode") : undefined} />;
+  }
 
   if (!path.startsWith("/dashboard")) {
-    return <HomePage theme={theme} onThemeToggle={() => setTheme(theme === "dark" ? "light" : "dark")} onDashboard={() => navigate("/dashboard")} />;
+    return <BorrowHomePage onNavigate={navigate} />;
   }
 
   return (
@@ -311,11 +371,13 @@ export default function App() {
         onRoleChange={setRole}
         onThemeToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
         onHome={() => navigate("/")}
+        onSwitchMode={role !== "user" ? () => navigate("/select-mode") : undefined}
         onDashboard={() => navigate("/dashboard")}
         onCctv={() => navigate("/dashboard/cctv")}
         onCollapse={() => navigate("/dashboard/collapse")}
         onRestricted={() => navigate("/dashboard/restricted")}
         onAssistant={() => navigate("/dashboard/assistant")}
+        onAnalytics={() => navigate("/dashboard/analytics")}
         activeView={
           isCctvPage
             ? "cctv"
@@ -325,7 +387,9 @@ export default function App() {
                 ? "restricted"
                 : isAssistantPage
                   ? "assistant"
-                  : "dashboard"
+                  : isAnalyticsPage
+                    ? "analytics"
+                    : "dashboard"
         }
         notifications={notifications}
         onNotificationClick={() => {
@@ -378,6 +442,8 @@ export default function App() {
         ) : null}
 
         {isAssistantPage ? <AssistantMapPage /> : null}
+
+        {isAnalyticsPage ? <AnalyticsPage onOpenBorrowAdmin={() => window.open("http://localhost:3000/dashboards/admin", "_blank")} /> : null}
 
         {!isToolPage && role === "admin" ? (
           <AdminDashboard

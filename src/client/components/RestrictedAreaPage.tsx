@@ -53,6 +53,7 @@ export function RestrictedAreaPage({
   const selectedCamera = state.nodes.find((node) => node.id === cameraNodeId) ?? cameraNodes[0];
   const restrictedNode = state.nodes.find((node) => node.id === restrictedNodeId) ?? restrictedNodes[0];
   const outsideAllowedTime = !isNowWithinTimeRange(allowedStart, allowedEnd);
+  const hasModelSource = Boolean(localModelStatus?.hasOnnx || localModelStatus?.hasRemoteOnnx);
 
   const detectionRows = useMemo(
     () => [
@@ -67,13 +68,13 @@ export function RestrictedAreaPage({
   );
 
   useEffect(() => {
-    if (!localModelStatus?.hasOnnx || hasLoadedYoloPersonModel() || autoLoadAttemptedRef.current) {
+    if (!hasModelSource || hasLoadedYoloPersonModel() || autoLoadAttemptedRef.current) {
       return;
     }
 
     autoLoadAttemptedRef.current = true;
     void handleLoadLocalOnnx();
-  }, [localModelStatus?.hasOnnx]);
+  }, [hasModelSource]);
 
   useEffect(() => {
     if (restrictedNode && restrictedNode.id !== selectedNodeId) {
@@ -130,11 +131,11 @@ export function RestrictedAreaPage({
     setModelStatus("Loading local COCO person ONNX model...");
     try {
       await loadYoloPersonModelFromUrl("/api/models/person-coco/model.onnx");
-      setModelName("person_model_bin/model.onnx");
-      setModelStatus("Local COCO person ONNX loaded. Uploaded video detection will use browser inference.");
+      setModelName(localModelStatus?.hasOnnx ? "person_model_bin/resq-person-coco.onnx" : localModelStatus?.remoteOnnxUrl ?? "Hugging Face COCO person ONNX");
+      setModelStatus("COCO person ONNX loaded. Uploaded video detection will use browser inference.");
     } catch (error) {
       setModelStatus("Local COCO person model failed to load.");
-      setLocalError(error instanceof Error ? error.message : "Could not load person_model_bin/model.onnx.");
+      setLocalError(error instanceof Error ? error.message : "Could not load person_model_bin/resq-person-coco.onnx.");
     }
   }
 
@@ -162,7 +163,7 @@ export function RestrictedAreaPage({
     }
 
     if (!hasLoadedYoloPersonModel()) {
-      setLocalError("Local COCO person model.onnx could not be loaded. Export YOLO11n or YOLOv8n to person_model_bin/model.onnx.");
+      setLocalError("Local COCO person ONNX could not be loaded. Export YOLO11n or YOLOv8n to person_model_bin/resq-person-coco.onnx.");
       return;
     }
 
@@ -303,9 +304,9 @@ export function RestrictedAreaPage({
                 <span>Upload YOLO COCO ONNX</span>
                 <small>{modelName || "Use YOLO11n or YOLOv8n pretrained on COCO"}</small>
               </label>
-              {localModelStatus?.hasOnnx ? (
+              {hasModelSource ? (
                 <button className="secondary-action" onClick={() => void handleLoadLocalOnnx()}>
-                  Load local COCO person model.onnx
+                  Load COCO person ONNX
                 </button>
               ) : null}
               <div className="info-list">
