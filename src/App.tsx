@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppState, Edge, Hazard, LocalModelStatus, Node, PersonLocation, Point, RouteResult } from "./shared/types";
+import type { AppState, Edge, Hazard, LocalModelStatus, Node, PersonLocation, Point, RouteResult, SystemNotification } from "./shared/types";
 import { createSampleState } from "./shared/sampleData";
 import {
   autoGenerateCameras,
@@ -13,6 +13,8 @@ import {
   deleteEdge,
   deleteNode,
   getLocalYoloModelStatus,
+  getLocalFallSafeModelStatus,
+  getLocalCocoPersonModelStatus,
   resetFloorMap,
   updateEdge,
   updateNode,
@@ -22,8 +24,11 @@ import {
 import { AdminDashboard } from "./client/components/AdminDashboard";
 import { ClerkDashboard } from "./client/components/ClerkDashboard";
 import { CctvSimulationPage } from "./client/components/CctvSimulationPage";
+import { CollapseDetectionPage } from "./client/components/CollapseDetectionPage";
 import { HomePage } from "./client/components/HomePage";
 import { Layout } from "./client/components/Layout";
+import { NotificationCenter } from "./client/components/NotificationCenter";
+import { RestrictedAreaPage } from "./client/components/RestrictedAreaPage";
 import { UserDashboard } from "./client/components/UserDashboard";
 
 const defaultNodeTypes: Node["type"][] = [
@@ -55,6 +60,10 @@ export default function App() {
   const [autoPathSummary, setAutoPathSummary] = useState<string>("");
   const [autoCameraSummary, setAutoCameraSummary] = useState<string>("");
   const [localModelStatus, setLocalModelStatus] = useState<LocalModelStatus | undefined>();
+  const [fallSafeModelStatus, setFallSafeModelStatus] = useState<LocalModelStatus | undefined>();
+  const [cocoPersonModelStatus, setCocoPersonModelStatus] = useState<LocalModelStatus | undefined>();
+  const [notifications, setNotifications] = useState<SystemNotification[]>([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [path, setPath] = useState(() => window.location.pathname);
 
   useEffect(() => {
@@ -83,6 +92,8 @@ export default function App() {
       setSelectedPersonId(response.state.people[0]?.id ?? "");
       setSelectedNodeId(response.state.nodes.find((node) => node.type === "junction")?.id ?? response.state.nodes[0]?.id ?? "");
       setLocalModelStatus(await getLocalYoloModelStatus());
+      setFallSafeModelStatus(await getLocalFallSafeModelStatus());
+      setCocoPersonModelStatus(await getLocalCocoPersonModelStatus());
     });
   }, []);
 
@@ -235,6 +246,19 @@ export default function App() {
       setServerState(hazardResponse.state);
       const routeResponse = await calculateRoute(routePayload);
       setRoute(routeResponse.route);
+      pushNotification({
+        kind: hazard.type === "structural" ? "collapse" : "fire",
+        title: hazard.type === "structural" ? "Collapse Emergency Detected" : "CCTV Hazard Detected",
+        message: hazard.label
+      });
+    });
+  }
+
+  function handleIntrusionDetected(payload: { cameraLabel: string; nodeLabel: string; count: number; confidence: number }) {
+    pushNotification({
+      kind: "intrusion",
+      title: "Restricted Area Intrusion",
+      message: `Person detected near ${payload.nodeLabel} by ${payload.cameraLabel} at ${Math.round(payload.confidence * 100)}% confidence.`
     });
   }
 
@@ -252,6 +276,22 @@ export default function App() {
     safeScrollToTop();
   }
 
+  function pushNotification(notification: Omit<SystemNotification, "id" | "createdAt" | "read">) {
+    setNotifications((current) => [
+      {
+        ...notification,
+        id: crypto.randomUUID?.() ?? `notification-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        read: false
+      },
+      ...current
+    ]);
+  }
+
+  function dismissNotification(id: string) {
+    setNotifications((current) => current.map((notification) => (notification.id === id ? { ...notification, read: true } : notification)));
+  }
+
   if (!path.startsWith("/dashboard")) {
     return <HomePage theme={theme} onThemeToggle={() => setTheme(theme === "dark" ? "light" : "dark")} onDashboard={() => navigate("/dashboard")} />;
   }
@@ -265,7 +305,22 @@ export default function App() {
         onThemeToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
         onHome={() => navigate("/")}
         onCctv={() => navigate("/dashboard/cctv")}
-        activeView={path.startsWith("/dashboard/cctv") ? "cctv" : "dashboard"}
+        onCollapse={() => navigate("/dashboard/collapse")}
+        onRestricted={() => navigate("/dashboard/restricted")}
+        activeView={
+          path.startsWith("/dashboard/cctv")
+            ? "cctv"
+            : path.startsWith("/dashboard/collapse")
+              ? "collapse"
+              : path.startsWith("/dashboard/restricted")
+                ? "restricted"
+                : "dashboard"
+        }
+        notifications={notifications}
+        onNotificationClick={() => {
+          setNotificationsOpen(true);
+          setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
+        }}
       >
         {path.startsWith("/dashboard/cctv") ? (
           <CctvSimulationPage
@@ -282,7 +337,36 @@ export default function App() {
           />
         ) : null}
 
-        {!path.startsWith("/dashboard/cctv") && role === "admin" ? (
+        {path.startsWith("/dashboard/collapse") ? (
+          <CollapseDetectionPage
+            state={state}
+            route={route}
+            selectedNodeId={selectedNode?.id ?? state.nodes[0]?.id ?? ""}
+            busy={busy}
+            message={message}
+            localModelStatus={fallSafeModelStatus}
+            onSelectNode={setSelectedNodeId}
+            onDetectedHazard={handleCctvDetectedHazard}
+            onCalculateRoute={handleCalculateRoute}
+            onResetSimulation={handleResetCctvSimulation}
+            onResetFloorMap={handleResetFloorMap}
+          />
+        ) : null}
+
+        {path.startsWith("/dashboard/restricted") ? (
+          <RestrictedAreaPage
+            state={state}
+            selectedNodeId={selectedNode?.id ?? state.nodes[0]?.id ?? ""}
+            busy={busy}
+            localModelStatus={cocoPersonModelStatus}
+            onSelectNode={setSelectedNodeId}
+            onIntrusionDetected={handleIntrusionDetected}
+            onClearSimulationData={() => setNotifications([])}
+            onResetFloorMap={handleResetFloorMap}
+          />
+        ) : null}
+
+        {!path.startsWith("/dashboard/cctv") && !path.startsWith("/dashboard/collapse") && !path.startsWith("/dashboard/restricted") && role === "admin" ? (
           <AdminDashboard
             state={state}
             nodeTypes={nodeTypes}
@@ -312,9 +396,9 @@ export default function App() {
           />
         ) : null}
 
-        {!path.startsWith("/dashboard/cctv") && role === "clerk" ? <ClerkDashboard state={state} route={route} /> : null}
+        {!path.startsWith("/dashboard/cctv") && !path.startsWith("/dashboard/collapse") && !path.startsWith("/dashboard/restricted") && role === "clerk" ? <ClerkDashboard state={state} route={route} /> : null}
 
-        {!path.startsWith("/dashboard/cctv") && role === "user" ? (
+        {!path.startsWith("/dashboard/cctv") && !path.startsWith("/dashboard/collapse") && !path.startsWith("/dashboard/restricted") && role === "user" ? (
           <UserDashboard
             state={state}
             route={route}
@@ -325,6 +409,13 @@ export default function App() {
           />
         ) : null}
       </Layout>
+      <NotificationCenter
+        notifications={notifications}
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        onDismiss={dismissNotification}
+        onClear={() => setNotifications([])}
+      />
     </div>
   );
 }

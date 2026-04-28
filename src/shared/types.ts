@@ -151,3 +151,14 @@ export interface LocalModelStatus {
   pytorchBinPath?: string;
   message: string;
 }
+
+export type SystemNotificationKind = "fire" | "collapse" | "intrusion" | "system";
+
+export interface SystemNotification {
+  id: string;
+  kind: SystemNotificationKind;
+  title: string;
+  message: string;
+  createdAt: string;
+  read: boolean;
+}

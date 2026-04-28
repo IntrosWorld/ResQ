@@ -237,6 +237,7 @@ export function CctvSimulationPage({
     <div className="cctv-page">
       <div className="dashboard-grid cctv-grid">
         <section className="workspace">
+          <h3 className="page-title">Simulating Hazard Through CCTV</h3>
           <MapCanvas state={state} selectedNodeId={selectedNode?.id} route={route} onNodeSelect={onSelectNode} />
         </section>
 

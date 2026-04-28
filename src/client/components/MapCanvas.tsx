@@ -1,4 +1,4 @@
-import { CircleAlert, DoorOpen, MapPin, Maximize2, Plus, Radio, Shield, UserRound, ZoomIn, ZoomOut } from "lucide-react";
+import { CircleAlert, DoorOpen, MapPin, Maximize2, Plus, Radio, RotateCcw, Shield, UserRound, ZoomIn, ZoomOut } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import type { AppState, Bounds, DxfSegment, FloorMap, Node, Point, RouteResult } from "../../shared/types";
 import { resolvePersonStartNode } from "../../shared/routing";
@@ -19,6 +19,7 @@ interface MapCanvasProps {
   onConnectionNodeClick?: (nodeId: string) => void;
   onConnectionCancel?: () => void;
   onEdgeContext?: (edgeId: string) => void;
+  onResetFloorMap?: () => void;
 }
 
 interface ViewBox {
@@ -62,7 +63,8 @@ export function MapCanvas({
   onPlaceNodeType,
   onConnectionNodeClick,
   onConnectionCancel,
-  onEdgeContext
+  onEdgeContext,
+  onResetFloorMap
 }: MapCanvasProps) {
   const { floorMap, nodes, edges, hazards, people } = state;
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -275,6 +277,11 @@ export function MapCanvas({
             </label>
           ) : null}
           <div className="map-tools" aria-label="Map controls">
+            {onResetFloorMap ? (
+              <button type="button" aria-label="Reset to default map" title="Reset to default map" onClick={onResetFloorMap}>
+                <RotateCcw size={16} />
+              </button>
+            ) : null}
             <button type="button" aria-label="Zoom in" title="Zoom in" onClick={() => zoom(0.76)}>
               <ZoomIn size={16} />
             </button>

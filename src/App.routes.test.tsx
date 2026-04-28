@@ -93,4 +93,29 @@ describe("App routes", () => {
     expect(screen.getByText("Upload fire/smoke YOLO ONNX")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /reset cctv simulation/i })).toBeInTheDocument();
   });
+
+  it("renders the emergency collapse detection page", async () => {
+    window.history.pushState({}, "", "/dashboard/collapse");
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText("Emergency Collapse Detection")).toBeInTheDocument());
+    expect(screen.getByText("Upload FallSafe YOLO11 ONNX")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /start video and detect collapse/i })).toBeInTheDocument();
+    expect(screen.getAllByText("Detected location").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Collapse node on map")).not.toBeInTheDocument();
+    expect(screen.queryByText("Evacuation start")).not.toBeInTheDocument();
+  });
+
+  it("renders the restricted-area person detection page with notifications entry", async () => {
+    window.history.pushState({}, "", "/dashboard/restricted");
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText("Restricted Area Person Detection")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /open notifications/i })).toBeInTheDocument();
+    expect(screen.getByText("Upload YOLO COCO ONNX")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /start restricted-area detection/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /remove previous simulation data/i })).toBeInTheDocument();
+  });
 });

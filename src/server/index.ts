@@ -47,6 +47,8 @@ app.get("/api/bootstrap", (_req, res) => {
       eventContract: ["cameraId", "hazardType", "confidence", "timestamp", "bbox", "nearestNodeId"],
       models: [
         "Ultralytics-compatible YOLO fire/smoke model",
+        "FallSafe/FallSafe-yolo11 collapse/fall detector exported to ONNX",
+        "Ultralytics YOLOv8n/YOLO11n COCO person detector exported to ONNX",
         "Roboflow fire/smoke detector exported to ONNX or PyTorch",
         "site-specific custom model trained on building camera angles"
       ]
@@ -92,6 +94,70 @@ app.get("/api/models/local-yolo/model.onnx", async (_req, res) => {
   const onnxPath = path.join(rootDir, "yolo_model_bin", "model.onnx");
   if (!(await fileExists(onnxPath))) {
     res.status(404).json({ error: "Local model.onnx not found. Export your PyTorch YOLO weights to yolo_model_bin/model.onnx first." });
+    return;
+  }
+
+  res.sendFile(onnxPath);
+});
+
+app.get("/api/models/fallsafe/status", async (_req, res) => {
+  const modelDir = path.join(rootDir, "fallsafe_model_bin");
+  const onnxPath = path.join(modelDir, "model.onnx");
+  const ptPath = path.join(modelDir, "model.pt");
+  const [hasOnnx, hasBestPt] = await Promise.all([fileExists(onnxPath), fileExists(ptPath)]);
+
+  res.json({
+    hasOnnx,
+    hasBestPt,
+    hasPytorchBin: false,
+    hasConfig: false,
+    hasSafetensors: false,
+    onnxPath: hasOnnx ? onnxPath : undefined,
+    bestPtPath: hasBestPt ? ptPath : undefined,
+    message: hasOnnx
+      ? "Local FallSafe ONNX model found. The collapse page can use this model directly."
+      : hasBestPt
+        ? "FallSafe model.pt found. Export it to fallsafe_model_bin/model.onnx for browser inference."
+        : "No local FallSafe model found in fallsafe_model_bin. Download FallSafe/FallSafe-yolo11 model/model.pt and export it to ONNX."
+  });
+});
+
+app.get("/api/models/fallsafe/model.onnx", async (_req, res) => {
+  const onnxPath = path.join(rootDir, "fallsafe_model_bin", "model.onnx");
+  if (!(await fileExists(onnxPath))) {
+    res.status(404).json({ error: "Local FallSafe model.onnx not found. Export FallSafe model.pt to fallsafe_model_bin/model.onnx first." });
+    return;
+  }
+
+  res.sendFile(onnxPath);
+});
+
+app.get("/api/models/person-coco/status", async (_req, res) => {
+  const modelDir = path.join(rootDir, "person_model_bin");
+  const onnxPath = path.join(modelDir, "model.onnx");
+  const ptPath = path.join(modelDir, "model.pt");
+  const [hasOnnx, hasBestPt] = await Promise.all([fileExists(onnxPath), fileExists(ptPath)]);
+
+  res.json({
+    hasOnnx,
+    hasBestPt,
+    hasPytorchBin: false,
+    hasConfig: false,
+    hasSafetensors: false,
+    onnxPath: hasOnnx ? onnxPath : undefined,
+    bestPtPath: hasBestPt ? ptPath : undefined,
+    message: hasOnnx
+      ? "Local COCO person ONNX model found. The restricted-area page can use this model directly."
+      : hasBestPt
+        ? "COCO person model.pt found. Export it to person_model_bin/model.onnx for browser inference."
+        : "No local COCO person model found in person_model_bin. Export YOLO11n or YOLOv8n pretrained COCO weights to ONNX."
+  });
+});
+
+app.get("/api/models/person-coco/model.onnx", async (_req, res) => {
+  const onnxPath = path.join(rootDir, "person_model_bin", "model.onnx");
+  if (!(await fileExists(onnxPath))) {
+    res.status(404).json({ error: "Local COCO person model.onnx not found. Export YOLO11n or YOLOv8n to person_model_bin/model.onnx first." });
     return;
   }
 

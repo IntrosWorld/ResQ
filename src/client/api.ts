@@ -24,6 +24,14 @@ export async function getLocalYoloModelStatus(): Promise<LocalModelStatus> {
   return fetchJson("/api/models/local-yolo/status");
 }
 
+export async function getLocalFallSafeModelStatus(): Promise<LocalModelStatus> {
+  return fetchJson("/api/models/fallsafe/status");
+}
+
+export async function getLocalCocoPersonModelStatus(): Promise<LocalModelStatus> {
+  return fetchJson("/api/models/person-coco/status");
+}
+
 export async function uploadFloorMap(file: File): Promise<{ state: AppState }> {
   const form = new FormData();
   form.append("floorMap", file);
