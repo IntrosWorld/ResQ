@@ -235,28 +235,6 @@ export function CctvSimulationPage({
 
   return (
     <div className="cctv-page">
-      <section className="cctv-hero panel">
-        <div>
-          <p className="topbar__kicker">CCTV hazard intelligence</p>
-          <h3>Simulating Hazard Through CCTV</h3>
-          <span>Upload CCTV footage and a YOLO ONNX hazard model, map the event to a building node, raise an alert, and recalculate the safest route.</span>
-        </div>
-        <div className="cctv-hero__status">
-          <span>
-            <RadioTower size={15} />
-            Edge inference
-          </span>
-          <span>
-            <ShieldAlert size={15} />
-            Auto alert
-          </span>
-          <span>
-            <Route size={15} />
-            Route response
-          </span>
-        </div>
-      </section>
-
       <div className="dashboard-grid cctv-grid">
         <section className="workspace">
           <MapCanvas state={state} selectedNodeId={selectedNode?.id} route={route} onNodeSelect={onSelectNode} />
