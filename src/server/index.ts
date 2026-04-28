@@ -20,7 +20,7 @@ const MODEL_FILES = {
   personCoco: "resq-person-coco.onnx"
 } as const;
 const HF_MODEL_BASE_URL = (process.env.HF_MODEL_BASE_URL ?? "https://huggingface.co/Snaptrope/resq/resolve/main").replace(/\/$/, "");
-const uploadDir = path.join(rootDir, "uploads");
+const uploadDir = process.env.VERCEL ? path.join("/tmp", "resq-uploads") : path.join(rootDir, "uploads");
 await mkdir(uploadDir, { recursive: true });
 
 const app = express();
@@ -443,9 +443,13 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
   res.status(500).json({ error: message });
 });
 
-app.listen(port, () => {
-  console.log(`ResQ backend listening on http://localhost:${port}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(port, () => {
+    console.log(`ResQ backend listening on http://localhost:${port}`);
+  });
+}
+
+export default app;
 
 async function fileExists(filePath: string): Promise<boolean> {
   try {
