@@ -1,5 +1,6 @@
 export type NodeType =
   | "room"
+  | "pathway"
   | "corridor"
   | "junction"
   | "staircase"
@@ -69,6 +70,26 @@ export interface DxfSegment {
   id: string;
   layer: string;
   points: Point[];
+  closed?: boolean;
+}
+
+export interface DxfTextLabel extends Point {
+  id: string;
+  layer: string;
+  text: string;
+  height: number;
+  rotation: number;
+}
+
+export interface DxfCircle extends Point {
+  id: string;
+  layer: string;
+  radius: number;
+}
+
+export interface DxfArc extends DxfCircle {
+  startAngle: number;
+  endAngle: number;
 }
 
 export interface FloorMap {
@@ -80,6 +101,9 @@ export interface FloorMap {
   importStatus: "ready" | "needs_converter" | "unsupported" | "failed";
   message: string;
   segments: DxfSegment[];
+  labels: DxfTextLabel[];
+  circles: DxfCircle[];
+  arcs: DxfArc[];
   bounds: Bounds;
 }
 

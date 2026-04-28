@@ -1053,6 +1053,66 @@ button {
   border-bottom: 1px solid var(--line);
 }
 
+.map-panel__actions,
+.map-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-node-mode {
+  min-height: 43px;
+  display: inline-flex;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 5px 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--surface-2);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.map-node-mode svg {
+  color: var(--brand);
+  flex: 0 0 auto;
+}
+
+.map-node-mode select {
+  width: auto;
+  min-width: 142px;
+  min-height: 32px;
+  padding: 5px 28px 5px 8px;
+  border: 0;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.map-tools {
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.map-tools button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  color: var(--text);
+  background: transparent;
+}
+
+.map-tools button:hover {
+  background: var(--surface);
+}
+
 .map-panel__header span {
   display: block;
   margin-top: 3px;
@@ -1094,10 +1154,24 @@ button {
   display: block;
   background: var(--surface-2);
   cursor: default;
+  touch-action: none;
+  user-select: none;
 }
 
 .map-panel.is-placing .floor-map {
   cursor: crosshair;
+}
+
+.map-panel.is-connecting .floor-map {
+  cursor: crosshair;
+}
+
+.map-panel.is-panning .floor-map {
+  cursor: grabbing;
+}
+
+.floor-map--dragging-node {
+  cursor: grabbing;
 }
 
 .map-bg {
@@ -1108,6 +1182,24 @@ button {
   fill: none;
   stroke: var(--line);
   stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.cad-circle,
+.cad-arc {
+  fill: none;
+  stroke: color-mix(in srgb, var(--muted) 70%, transparent);
+  stroke-width: 1.5;
+  opacity: 0.72;
+  vector-effect: non-scaling-stroke;
+}
+
+.cad-label {
+  fill: var(--text);
+  paint-order: stroke;
+  stroke: var(--surface-2);
+  stroke-width: 3;
+  font-weight: 700;
   vector-effect: non-scaling-stroke;
 }
 
@@ -1127,11 +1219,34 @@ button {
   stroke: rgba(100, 116, 139, 0.65);
   stroke-width: 4;
   vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.graph-edge-hit {
+  stroke: transparent;
+  stroke-width: 18;
+  vector-effect: non-scaling-stroke;
+  pointer-events: stroke;
+  cursor: context-menu;
 }
 
 .graph-edge--blocked {
   stroke: var(--danger);
   stroke-dasharray: 8 6;
+}
+
+.graph-edge--selected {
+  stroke: var(--accent);
+  stroke-width: 7;
+}
+
+.connection-preview-line {
+  stroke: var(--brand);
+  stroke-width: 4;
+  stroke-dasharray: 6 5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }
 
 .route-line {
@@ -1155,7 +1270,11 @@ button {
 }
 
 .node-hit {
-  cursor: pointer;
+  cursor: grab;
+}
+
+.floor-map--dragging-node .node-hit {
+  cursor: grabbing;
 }
 
 .node-dot {
@@ -1174,7 +1293,6 @@ button {
   paint-order: stroke;
   stroke: var(--surface);
   stroke-width: 5;
-  font-size: 13px;
   font-weight: 800;
   text-anchor: middle;
   vector-effect: non-scaling-stroke;
@@ -1191,7 +1309,6 @@ button {
   paint-order: stroke;
   stroke: var(--surface);
   stroke-width: 4;
-  font-size: 12px;
   font-weight: 800;
 }
 
@@ -1251,6 +1368,78 @@ button {
 .field-row {
   display: grid;
   gap: 10px;
+}
+
+.node-editor__summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.node-editor__summary span {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.node-editor__summary strong {
+  min-width: 0;
+}
+
+.node-editor__summary small {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: capitalize;
+}
+
+.coordinate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.connection-tools {
+  display: grid;
+  gap: 10px;
+}
+
+.connection-tools .primary-action,
+.connection-tools .secondary-action {
+  width: 100%;
+}
+
+.connection-settings {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.connection-settings > div {
+  display: grid;
+  gap: 3px;
+}
+
+.connection-settings span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 label {
@@ -1319,6 +1508,18 @@ select {
   color: var(--text);
   background: var(--surface-2);
   text-align: left;
+}
+
+.list-row--selected {
+  outline: 2px solid var(--accent);
+  background: var(--surface);
+}
+
+.list-row small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .node-table {

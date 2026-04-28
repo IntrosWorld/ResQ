@@ -18,6 +18,9 @@ export const sampleFloorMap: FloorMap = {
   importStatus: "ready",
   message: "Sample map loaded. Upload DWG/DXF/SVG/image or edit nodes directly.",
   segments: sampleSegments,
+  labels: [],
+  circles: [],
+  arcs: [],
   bounds: { minX: 0, minY: 0, maxX: 900, maxY: 560 }
 };
 

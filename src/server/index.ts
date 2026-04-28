@@ -34,7 +34,7 @@ app.get("/api/bootstrap", (_req, res) => {
   res.json({
     state: store.getState(),
     roles: ["admin", "clerk", "user"],
-    nodeTypes: ["room", "corridor", "junction", "staircase", "exit", "extinguisher", "camera", "sensor", "actuator", "ble_beacon", "qr_checkpoint"],
+    nodeTypes: ["room", "pathway", "corridor", "junction", "staircase", "exit", "extinguisher", "camera", "sensor", "actuator", "ble_beacon", "qr_checkpoint"],
     cadRequirements: {
       accepted: ["dwg", "dxf", "svg", "png", "jpg", "jpeg"],
       recommendedLayers: ["WALLS", "ROOMS", "DOORS", "STAIRS", "EXITS", "FIRE_EQUIPMENT", "CAMERAS", "SENSORS", "BEACONS", "QR_POINTS"],
@@ -58,9 +58,9 @@ app.post("/api/cad/upload", upload.single("floorMap"), async (req, res, next) =>
       res.status(400).json({ error: "Upload a floorMap file." });
       return;
     }
-    const floorMap = await importFloorMap(req.file.path, req.file.originalname);
-    store.setFloorMap(floorMap);
-    res.json({ floorMap, state: store.getState() });
+    const imported = await importFloorMap(req.file.path, req.file.originalname);
+    const state = store.applyFloorMapImport(imported.floorMap, imported.inferredNodes);
+    res.json({ floorMap: imported.floorMap, inferredNodes: imported.inferredNodes, state });
   } catch (error) {
     next(error);
   }

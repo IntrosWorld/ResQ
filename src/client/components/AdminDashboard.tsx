@@ -18,6 +18,7 @@ interface AdminDashboardProps {
   onUpdateNode: (nodeId: string, patch: Partial<Omit<Node, "id">>) => void;
   onDeleteNode: (nodeId: string) => void;
   onCreateEdge: (edge: Omit<Edge, "id">) => void;
+  onUpdateEdge: (edgeId: string, patch: Partial<Omit<Edge, "id">>) => void;
   onDeleteEdge: (edgeId: string) => void;
   onSimulateHazard: (hazard: Omit<Hazard, "id" | "createdAt">) => void;
   onClearHazards: () => void;
@@ -28,6 +29,68 @@ interface AdminDashboardProps {
 export function AdminDashboard(props: AdminDashboardProps) {
   const selectedNode = props.state.nodes.find((node) => node.id === props.selectedNodeId);
   const activeHazards = props.state.hazards.filter((hazard) => hazard.active);
+  const [connectionToolActive, setConnectionToolActive] = useState(false);
+  const [connectionStartNodeId, setConnectionStartNodeId] = useState<string | undefined>();
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | undefined>();
+  const connectionStartNode = connectionStartNodeId ? props.state.nodes.find((node) => node.id === connectionStartNodeId) : undefined;
+  const selectedEdge = selectedEdgeId ? props.state.edges.find((edge) => edge.id === selectedEdgeId) : undefined;
+
+  function toggleConnectionTool() {
+    setConnectionToolActive((active) => {
+      const next = !active;
+      setConnectionStartNodeId(undefined);
+      if (next) {
+        props.onPlaceNodeType(null);
+      }
+      return next;
+    });
+  }
+
+  function handlePlaceNodeType(type: Node["type"] | null) {
+    if (type) {
+      setConnectionToolActive(false);
+      setConnectionStartNodeId(undefined);
+    }
+    props.onPlaceNodeType(type);
+  }
+
+  function handleConnectionNodeClick(nodeId: string) {
+    props.onSelectNode(nodeId);
+    if (!connectionStartNodeId) {
+      setConnectionStartNodeId(nodeId);
+      return;
+    }
+
+    if (connectionStartNodeId === nodeId) {
+      return;
+    }
+
+    const existingEdge = props.state.edges.find((edge) => connects(edge, connectionStartNodeId, nodeId));
+    if (existingEdge) {
+      setSelectedEdgeId(existingEdge.id);
+      setConnectionStartNodeId(nodeId);
+      return;
+    }
+
+    const from = props.state.nodes.find((node) => node.id === connectionStartNodeId);
+    const to = props.state.nodes.find((node) => node.id === nodeId);
+    if (!from || !to) {
+      setConnectionStartNodeId(nodeId);
+      return;
+    }
+
+    props.onCreateEdge({
+      from: connectionStartNodeId,
+      to: nodeId,
+      distance: distanceBetween(from, to),
+      status: "open"
+    });
+    setConnectionStartNodeId(nodeId);
+  }
+
+  function finishConnectionChain() {
+    setConnectionStartNodeId(undefined);
+  }
 
   return (
     <div className="dashboard-grid dashboard-grid--admin">
@@ -37,8 +100,17 @@ export function AdminDashboard(props: AdminDashboardProps) {
           selectedNodeId={props.selectedNodeId}
           route={props.route}
           placingNodeType={props.placingNodeType}
+          nodeTypes={props.nodeTypes}
           onNodeSelect={props.onSelectNode}
+          onPlaceNodeType={handlePlaceNodeType}
           onMapClick={props.onMapClick}
+          onNodeMove={(nodeId, point) => props.onUpdateNode(nodeId, point)}
+          connectionToolActive={connectionToolActive}
+          connectionStartNodeId={connectionStartNodeId}
+          selectedEdgeId={selectedEdgeId}
+          onConnectionNodeClick={handleConnectionNodeClick}
+          onConnectionCancel={finishConnectionChain}
+          onEdgeContext={setSelectedEdgeId}
         />
       </section>
 
@@ -63,35 +135,51 @@ export function AdminDashboard(props: AdminDashboardProps) {
         </Panel>
 
         <Panel title="Node editor" icon={<MapPlus size={18} />}>
-          <div className="field-row">
-            <label>
-              Add type
-              <select value={props.placingNodeType ?? ""} onChange={(event) => props.onPlaceNodeType((event.target.value || null) as Node["type"] | null)}>
-                <option value="">Select then click map</option>
-                {props.nodeTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type.replace("_", " ")}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
           {selectedNode ? (
-            <NodeForm node={selectedNode} nodeTypes={props.nodeTypes} onUpdate={props.onUpdateNode} onDelete={props.onDeleteNode} />
+            <>
+              <div className="node-editor__summary">
+                <span>Selected</span>
+                <strong>{selectedNode.label}</strong>
+                <small>{selectedNode.type.replace("_", " ")}</small>
+              </div>
+              <NodeForm node={selectedNode} nodeTypes={props.nodeTypes} onUpdate={props.onUpdateNode} onDelete={props.onDeleteNode} />
+            </>
           ) : (
             <p className="muted">Select a node on the map to edit label, type, and coordinates.</p>
           )}
         </Panel>
 
-        <Panel title="Path graph" icon={<Link2 size={18} />}>
-          <EdgeForm nodes={props.state.nodes} onCreateEdge={props.onCreateEdge} />
+        <Panel title="Route connections" icon={<Link2 size={18} />}>
+          <div className="connection-tools">
+            <button className={connectionToolActive ? "primary-action" : "secondary-action"} onClick={toggleConnectionTool}>
+              {connectionToolActive ? "Stop drawing paths" : "Draw path on map"}
+            </button>
+            <p className="muted">
+              {connectionToolActive
+                ? connectionStartNode
+                  ? `From ${connectionStartNode.label}: click the next node. Double-click the map to finish this chain.`
+                  : "Click a node on the map to start a walkable path."
+                : "Use this to define walkable routes between rooms, corridors, stairs, and exits."}
+            </p>
+          </div>
+          {selectedEdge ? (
+            <ConnectionSettings
+              edge={selectedEdge}
+              nodes={props.state.nodes}
+              onUpdate={props.onUpdateEdge}
+              onDelete={(edgeId) => {
+                props.onDeleteEdge(edgeId);
+                setSelectedEdgeId(undefined);
+              }}
+            />
+          ) : null}
           <div className="edge-list">
-            {props.state.edges.slice(0, 8).map((edge) => (
-              <button key={edge.id} className="list-row" onClick={() => props.onDeleteEdge(edge.id)}>
+            {props.state.edges.slice(0, 10).map((edge) => (
+              <button key={edge.id} className={selectedEdgeId === edge.id ? "list-row list-row--selected" : "list-row"} onClick={() => setSelectedEdgeId(edge.id)}>
                 <span>
                   {labelFor(props.state.nodes, edge.from)} {"->"} {labelFor(props.state.nodes, edge.to)}
                 </span>
-                <Trash2 size={14} />
+                <small>{edge.status}</small>
               </button>
             ))}
           </div>
@@ -171,7 +259,7 @@ function NodeForm({
   return (
     <div className="form-grid">
       <label>
-        Label
+        Node label
         <input value={node.label} onChange={(event) => onUpdate(node.id, { label: event.target.value })} />
       </label>
       <label>
@@ -184,17 +272,57 @@ function NodeForm({
           ))}
         </select>
       </label>
-      <label>
-        X
-        <input type="number" value={node.x} onChange={(event) => onUpdate(node.id, { x: Number(event.target.value) })} />
-      </label>
-      <label>
-        Y
-        <input type="number" value={node.y} onChange={(event) => onUpdate(node.id, { y: Number(event.target.value) })} />
-      </label>
+      <div className="coordinate-grid">
+        <label>
+          X
+          <input type="number" value={node.x} onChange={(event) => onUpdate(node.id, { x: Number(event.target.value) })} />
+        </label>
+        <label>
+          Y
+          <input type="number" value={node.y} onChange={(event) => onUpdate(node.id, { y: Number(event.target.value) })} />
+        </label>
+      </div>
       <button className="danger-action" onClick={() => onDelete(node.id)}>
         <Trash2 size={16} />
         Delete node
+      </button>
+    </div>
+  );
+}
+
+function ConnectionSettings({
+  edge,
+  nodes,
+  onUpdate,
+  onDelete
+}: {
+  edge: Edge;
+  nodes: Node[];
+  onUpdate: AdminDashboardProps["onUpdateEdge"];
+  onDelete: AdminDashboardProps["onDeleteEdge"];
+}) {
+  return (
+    <div className="connection-settings">
+      <div>
+        <span>Selected connection</span>
+        <strong>
+          {labelFor(nodes, edge.from)} {"->"} {labelFor(nodes, edge.to)}
+        </strong>
+      </div>
+      <label>
+        Status
+        <select value={edge.status} onChange={(event) => onUpdate(edge.id, { status: event.target.value as Edge["status"] })}>
+          <option value="open">open</option>
+          <option value="blocked">blocked</option>
+        </select>
+      </label>
+      <label>
+        Distance
+        <input type="number" min="0.01" step="0.01" value={edge.distance} onChange={(event) => onUpdate(edge.id, { distance: Number(event.target.value) })} />
+      </label>
+      <button className="danger-action" onClick={() => onDelete(edge.id)}>
+        <Trash2 size={16} />
+        Delete connection
       </button>
     </div>
   );
@@ -402,6 +530,14 @@ function RouteForm({
 
 function labelFor(nodes: Node[], id: string): string {
   return nodes.find((node) => node.id === id)?.label ?? id;
+}
+
+function connects(edge: Edge, first: string, second: string): boolean {
+  return (edge.from === first && edge.to === second) || (edge.from === second && edge.to === first);
+}
+
+function distanceBetween(from: Point, to: Point): number {
+  return Math.max(0.01, Math.round(Math.hypot(from.x - to.x, from.y - to.y) * 100) / 100);
 }
 
 function useLocal<T extends string>(initial: T): [T, (value: T) => void] {

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const nodeTypes = [
   "room",
+  "pathway",
   "corridor",
   "junction",
   "staircase",

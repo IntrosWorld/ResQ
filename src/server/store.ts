@@ -13,6 +13,17 @@ export class MemoryStore {
     return this.getState();
   }
 
+  applyFloorMapImport(floorMap: FloorMap, inferredNodes: Array<Omit<Node, "id">>): AppState {
+    this.state.floorMap = floorMap;
+    if (floorMap.importStatus !== "unsupported") {
+      this.state.nodes = inferredNodes.map((node) => ({ ...node, id: `node-${crypto.randomUUID()}` }));
+      this.state.edges = [];
+      this.state.hazards = [];
+      this.state.people = [];
+    }
+    return this.getState();
+  }
+
   addNode(node: Omit<Node, "id">): Node {
     const saved = { ...node, id: `node-${crypto.randomUUID()}` };
     this.state.nodes.push(saved);

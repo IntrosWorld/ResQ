@@ -9,7 +9,7 @@ import { createSampleState } from "./shared/sampleData";
 const bootstrapResponse = {
   state: createSampleState(),
   roles: ["admin", "clerk", "user"],
-  nodeTypes: ["room", "corridor", "junction", "staircase", "exit", "extinguisher", "camera", "sensor", "actuator", "ble_beacon", "qr_checkpoint"],
+  nodeTypes: ["room", "pathway", "corridor", "junction", "staircase", "exit", "extinguisher", "camera", "sensor", "actuator", "ble_beacon", "qr_checkpoint"],
   cadRequirements: {
     accepted: ["dwg", "dxf", "svg", "png", "jpg", "jpeg"],
     recommendedLayers: ["WALLS", "ROOMS", "DOORS", "STAIRS", "EXITS", "CAMERAS", "SENSORS", "BEACONS", "QR_POINTS"],
@@ -54,5 +54,15 @@ describe("App routes", () => {
     await waitFor(() => expect(screen.getByText("Building Response Console")).toBeInTheDocument());
     expect(screen.queryByRole("heading", { name: "How SafePath Works" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Designed For Custom Building Hardware" })).not.toBeInTheDocument();
+  });
+
+  it("keeps add-node controls in the map toolbar instead of the node editor sidebar", async () => {
+    window.history.pushState({}, "", "/dashboard");
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText("Building Response Console")).toBeInTheDocument());
+    expect(screen.getByLabelText("Add node type")).toBeInTheDocument();
+    expect(screen.queryByText("Add type")).not.toBeInTheDocument();
   });
 });

@@ -34,7 +34,7 @@ Best results come from a clean 2D floor drawing:
 - Separate layers preferred: `WALLS`, `ROOMS`, `DOORS`, `STAIRS`, `EXITS`, `FIRE_EQUIPMENT`, `CAMERAS`, `SENSORS`, `BEACONS`, `QR_POINTS`.
 - Avoid exploded title blocks, unrelated furniture, heavy hatches, and many duplicate lines in the routing drawing.
 
-DXF files are parsed directly for preview geometry. DWG files are accepted, stored, and marked `needs_converter` unless the deployment configures a converter such as LibreDWG or ODA File Converter. Admins can always place and edit nodes manually after upload.
+DXF files are parsed directly for preview geometry, including lines, lightweight polylines, legacy polylines, circles, arcs, `TEXT`, and `MTEXT` labels. Closed room polygons on room-like layers are converted into editable room nodes at the room center; labels inside those polygons become the node names. Corridor, path, hallway, exit, stair, camera, sensor, BLE, QR, actuator, and extinguisher layers/text can also create editable node candidates. DWG files are accepted, stored, and marked `needs_converter` unless the deployment configures a converter such as LibreDWG or ODA File Converter. Admins can always place and edit nodes manually after upload.
 
 ## Phase 1 Features
 

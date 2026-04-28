@@ -42,6 +42,10 @@ export async function createEdge(edge: Omit<Edge, "id">): Promise<{ edge: Edge; 
   return fetchJson("/api/edges", jsonRequest("POST", edge));
 }
 
+export async function updateEdge(id: string, patch: Partial<Omit<Edge, "id">>): Promise<{ edge: Edge; state: AppState }> {
+  return fetchJson(`/api/edges/${id}`, jsonRequest("PATCH", patch));
+}
+
 export async function deleteEdge(id: string): Promise<{ deleted: boolean; state: AppState }> {
   return fetchJson(`/api/edges/${id}`, { method: "DELETE" });
 }

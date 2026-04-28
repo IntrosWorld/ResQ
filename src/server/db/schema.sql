@@ -41,7 +41,7 @@ create table if not exists graph_nodes (
   id uuid primary key default gen_random_uuid(),
   floor_id uuid not null references floors(id) on delete cascade,
   label text not null,
-  node_type text not null check (node_type in ('room','corridor','junction','staircase','exit','extinguisher','camera','sensor','actuator','ble_beacon','qr_checkpoint')),
+  node_type text not null check (node_type in ('room','pathway','corridor','junction','staircase','exit','extinguisher','camera','sensor','actuator','ble_beacon','qr_checkpoint')),
   x double precision not null,
   y double precision not null,
   metadata jsonb not null default '{}'::jsonb,

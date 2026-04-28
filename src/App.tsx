@@ -10,6 +10,7 @@ import {
   createNode,
   deleteEdge,
   deleteNode,
+  updateEdge,
   updateNode,
   updatePerson,
   uploadFloorMap
@@ -22,6 +23,7 @@ import { UserDashboard } from "./client/components/UserDashboard";
 
 const defaultNodeTypes: Node["type"][] = [
   "room",
+  "pathway",
   "corridor",
   "junction",
   "staircase",
@@ -135,6 +137,15 @@ export default function App() {
     run("Connection added.", async () => {
       const response = await createEdge(edge);
       setServerState(response.state);
+      setRoute(undefined);
+    });
+  }
+
+  function handleUpdateEdge(edgeId: string, patch: Partial<Omit<Edge, "id">>) {
+    run("Connection updated.", async () => {
+      const response = await updateEdge(edgeId, patch);
+      setServerState(response.state);
+      setRoute(undefined);
     });
   }
 
@@ -211,6 +222,7 @@ export default function App() {
             onUpdateNode={handleUpdateNode}
             onDeleteNode={handleDeleteNode}
             onCreateEdge={handleCreateEdge}
+            onUpdateEdge={handleUpdateEdge}
             onDeleteEdge={handleDeleteEdge}
             onSimulateHazard={handleSimulateHazard}
             onClearHazards={handleClearHazards}
