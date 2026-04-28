@@ -178,6 +178,111 @@ ENDSEC
 0
 EOF`;
 
+const labelOnlyRoomsDxf = `0
+SECTION
+2
+ENTITIES
+0
+TEXT
+8
+ANNOTATION
+10
+0
+20
+100
+40
+4
+1
+FIRST FLOOR
+0
+TEXT
+8
+ROOM_LABELS
+10
+10
+20
+10
+40
+4
+1
+KITCHEN
+0
+TEXT
+8
+ROOM_LABELS
+10
+40
+20
+10
+40
+4
+1
+BED ROOM
+0
+TEXT
+8
+ROOM_LABELS
+10
+70
+20
+10
+40
+4
+1
+BATH
+0
+TEXT
+8
+ROOM_LABELS
+10
+10
+20
+40
+40
+4
+1
+HALL
+0
+TEXT
+8
+ROOM_LABELS
+10
+40
+20
+40
+40
+4
+1
+HALL
+0
+TEXT
+8
+ROOM_LABELS
+10
+70
+20
+40
+40
+4
+1
+CAR PARKING
+0
+TEXT
+8
+ROOM_LABELS
+10
+10
+20
+70
+40
+4
+1
+PASSAGE 6FEET WIDE
+0
+ENDSEC
+0
+EOF`;
+
 describe("parseDxfPreview", () => {
   it("extracts line and lightweight polyline segments with layers and bounds", () => {
     const preview = parseDxfPreview(simpleDxf);
@@ -257,5 +362,23 @@ describe("inferNodesFromDxfPreview", () => {
         metadata: expect.objectContaining({ inferredFrom: "dxf", sourceSegmentId: "seg-1" })
       })
     );
+  });
+
+  it("creates editable nodes from room labels and numbers duplicate names", () => {
+    const preview = parseDxfPreview(labelOnlyRoomsDxf);
+    const nodes = inferNodesFromDxfPreview(preview, "floor-1");
+
+    expect(nodes.map((node) => node.label)).toEqual([
+      "KITCHEN",
+      "BED ROOM",
+      "BATH",
+      "HALL 1",
+      "HALL 2",
+      "CAR PARKING",
+      "PASSAGE 6FEET WIDE"
+    ]);
+    expect(nodes.find((node) => node.label === "FIRST FLOOR")).toBeUndefined();
+    expect(nodes.find((node) => node.label === "KITCHEN")).toEqual(expect.objectContaining({ type: "room", x: 10, y: 10 }));
+    expect(nodes.find((node) => node.label === "PASSAGE 6FEET WIDE")).toEqual(expect.objectContaining({ type: "pathway" }));
   });
 });

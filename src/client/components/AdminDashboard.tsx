@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Link2, LocateFixed, MapPlus, Route, Save, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, Camera, CheckCircle2, Link2, LocateFixed, MapPlus, Route, Save, Sparkles, Trash2, Upload } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { AppState, Edge, Hazard, Node, PersonLocation, Point, RouteResult } from "../../shared/types";
 import { MapCanvas } from "./MapCanvas";
@@ -18,6 +18,10 @@ interface AdminDashboardProps {
   onUpdateNode: (nodeId: string, patch: Partial<Omit<Node, "id">>) => void;
   onDeleteNode: (nodeId: string) => void;
   onCreateEdge: (edge: Omit<Edge, "id">) => void;
+  onAutoGenerateCameras: () => void;
+  autoCameraSummary: string;
+  onAutoGenerateEdges: () => void;
+  autoPathSummary: string;
   onUpdateEdge: (edgeId: string, patch: Partial<Omit<Edge, "id">>) => void;
   onDeleteEdge: (edgeId: string) => void;
   onSimulateHazard: (hazard: Omit<Hazard, "id" | "createdAt">) => void;
@@ -149,7 +153,24 @@ export function AdminDashboard(props: AdminDashboardProps) {
           )}
         </Panel>
 
+        <Panel title="Device placement" icon={<Camera size={18} />}>
+          <button className="primary-action primary-action--wide" onClick={props.onAutoGenerateCameras} disabled={props.busy || props.state.nodes.length < 1}>
+            <Camera size={16} />
+            Auto cameras
+          </button>
+          {props.autoCameraSummary ? <p className="status-message">{props.autoCameraSummary}</p> : null}
+          <div className="info-list">
+            <span>Places cameras for halls, passages, exits, stairs, parking, lobby, veranda, kitchen, and entrances.</span>
+            <span>Skips bathrooms, washrooms, toilets, bedrooms, and already covered areas.</span>
+          </div>
+        </Panel>
+
         <Panel title="Route connections" icon={<Link2 size={18} />}>
+          <button className="primary-action primary-action--wide" onClick={props.onAutoGenerateEdges} disabled={props.busy || props.state.nodes.length < 2}>
+            <Sparkles size={16} />
+            Auto paths from map
+          </button>
+          {props.autoPathSummary ? <p className="status-message">{props.autoPathSummary}</p> : null}
           <div className="connection-tools">
             <button className={connectionToolActive ? "primary-action" : "secondary-action"} onClick={toggleConnectionTool}>
               {connectionToolActive ? "Stop drawing paths" : "Draw path on map"}
@@ -179,7 +200,9 @@ export function AdminDashboard(props: AdminDashboardProps) {
                 <span>
                   {labelFor(props.state.nodes, edge.from)} {"->"} {labelFor(props.state.nodes, edge.to)}
                 </span>
-                <small>{edge.status}</small>
+                <small>
+                  {edge.distance.toFixed(2)} units | {edge.status}
+                </small>
               </button>
             ))}
           </div>

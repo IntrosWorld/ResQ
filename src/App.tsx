@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { AppState, Edge, Hazard, Node, PersonLocation, Point, RouteResult } from "./shared/types";
 import { createSampleState } from "./shared/sampleData";
 import {
+  autoGenerateCameras,
+  autoGenerateEdges,
   bootstrap,
   calculateRoute,
   clearAllHazards,
@@ -47,6 +49,8 @@ export default function App() {
   const [route, setRoute] = useState<RouteResult | undefined>();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [autoPathSummary, setAutoPathSummary] = useState<string>("");
+  const [autoCameraSummary, setAutoCameraSummary] = useState<string>("");
   const [path, setPath] = useState(() => window.location.pathname);
 
   useEffect(() => {
@@ -101,6 +105,8 @@ export default function App() {
       const response = await uploadFloorMap(file);
       setServerState(response.state);
       setRoute(undefined);
+      setAutoPathSummary("");
+      setAutoCameraSummary("");
     });
   }
 
@@ -138,6 +144,24 @@ export default function App() {
       const response = await createEdge(edge);
       setServerState(response.state);
       setRoute(undefined);
+      setAutoPathSummary("");
+    });
+  }
+
+  function handleAutoGenerateEdges() {
+    run("Automatic paths generated.", async () => {
+      const response = await autoGenerateEdges();
+      setServerState(response.state);
+      setRoute(undefined);
+      setAutoPathSummary(`${response.message} ${response.skipped} existing paths skipped.`);
+    });
+  }
+
+  function handleAutoGenerateCameras() {
+    run("Automatic cameras generated.", async () => {
+      const response = await autoGenerateCameras();
+      setServerState(response.state);
+      setAutoCameraSummary(`${response.message} ${response.skipped} covered areas skipped.`);
     });
   }
 
@@ -222,6 +246,10 @@ export default function App() {
             onUpdateNode={handleUpdateNode}
             onDeleteNode={handleDeleteNode}
             onCreateEdge={handleCreateEdge}
+            onAutoGenerateCameras={handleAutoGenerateCameras}
+            autoCameraSummary={autoCameraSummary}
+            onAutoGenerateEdges={handleAutoGenerateEdges}
+            autoPathSummary={autoPathSummary}
             onUpdateEdge={handleUpdateEdge}
             onDeleteEdge={handleDeleteEdge}
             onSimulateHazard={handleSimulateHazard}

@@ -38,6 +38,10 @@ export async function deleteNode(id: string): Promise<{ deleted: boolean; state:
   return fetchJson(`/api/nodes/${id}`, { method: "DELETE" });
 }
 
+export async function autoGenerateCameras(): Promise<{ nodes: Node[]; skipped: number; message: string; state: AppState }> {
+  return fetchJson("/api/nodes/auto-cameras", jsonRequest("POST", {}));
+}
+
 export async function createEdge(edge: Omit<Edge, "id">): Promise<{ edge: Edge; state: AppState }> {
   return fetchJson("/api/edges", jsonRequest("POST", edge));
 }
@@ -48,6 +52,10 @@ export async function updateEdge(id: string, patch: Partial<Omit<Edge, "id">>): 
 
 export async function deleteEdge(id: string): Promise<{ deleted: boolean; state: AppState }> {
   return fetchJson(`/api/edges/${id}`, { method: "DELETE" });
+}
+
+export async function autoGenerateEdges(): Promise<{ edges: Edge[]; skipped: number; message: string; state: AppState }> {
+  return fetchJson("/api/edges/auto-generate", jsonRequest("POST", {}));
 }
 
 export async function updatePerson(id: string, patch: Partial<Omit<PersonLocation, "id" | "updatedAt">>): Promise<{ person: PersonLocation; state: AppState }> {

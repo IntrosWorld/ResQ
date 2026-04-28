@@ -65,4 +65,20 @@ describe("App routes", () => {
     expect(screen.getByLabelText("Add node type")).toBeInTheDocument();
     expect(screen.queryByText("Add type")).not.toBeInTheDocument();
   });
+
+  it("shows automatic path generation in the route connection controls", async () => {
+    window.history.pushState({}, "", "/dashboard");
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /auto paths from map/i })).toBeInTheDocument());
+  });
+
+  it("shows automatic camera placement controls", async () => {
+    window.history.pushState({}, "", "/dashboard");
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /auto cameras/i })).toBeInTheDocument());
+  });
 });

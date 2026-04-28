@@ -5,6 +5,8 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ZodError } from "zod";
+import { generateAutoCameraNodes } from "../shared/autoDevices";
+import { generateAutoPathEdges } from "../shared/autoPaths";
 import { calculateEvacuationRoute, resolvePersonStartNode } from "../shared/routing";
 import { importFloorMap } from "./cad/importer";
 import { store } from "./store";
@@ -92,6 +94,12 @@ app.delete("/api/nodes/:id", (req, res) => {
   res.json({ deleted: store.deleteNode(req.params.id), state: store.getState() });
 });
 
+app.post("/api/nodes/auto-cameras", (_req, res) => {
+  const result = generateAutoCameraNodes(store.getState());
+  const nodes = store.addNodes(result.nodes);
+  res.json({ nodes, skipped: result.skipped, message: result.message, state: store.getState() });
+});
+
 app.post("/api/edges", (req, res, next) => {
   try {
     const edge = store.addEdge(edgeSchema.parse(req.body));
@@ -116,6 +124,12 @@ app.patch("/api/edges/:id", (req, res, next) => {
 
 app.delete("/api/edges/:id", (req, res) => {
   res.json({ deleted: store.deleteEdge(req.params.id), state: store.getState() });
+});
+
+app.post("/api/edges/auto-generate", (_req, res) => {
+  const result = generateAutoPathEdges(store.getState());
+  const edges = store.addEdges(result.edges);
+  res.json({ edges, skipped: result.skipped, message: result.message, state: store.getState() });
 });
 
 app.post("/api/people", (req, res, next) => {

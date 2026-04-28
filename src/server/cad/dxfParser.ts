@@ -162,7 +162,7 @@ export function inferNodesFromDxfPreview(preview: DxfPreview, floorId: string): 
     }
 
     const type = inferNodeType(label.layer, label.text);
-    if (!type || type === "room") {
+    if (!type) {
       continue;
     }
 
@@ -180,7 +180,7 @@ export function inferNodesFromDxfPreview(preview: DxfPreview, floorId: string): 
     });
   }
 
-  return nodes;
+  return makeUniqueNodeLabels(nodes);
 }
 
 function toPairs(content: string): DxfPair[] {
@@ -277,6 +277,8 @@ function cleanDxfText(text: string): string {
 
 function inferNodeType(layer: string, text = ""): NodeType | undefined {
   const source = `${layer} ${text}`.toUpperCase();
+  const label = text.toUpperCase().replace(/\s+/g, " ").trim();
+  if (/^(GROUND|FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|EIGHTH|NINTH|TENTH)\s+FLOOR$/.test(label)) return undefined;
   if (source.includes("EXIT") || source.includes("ELEVATION OUT")) return "exit";
   if (source.includes("STAIR")) return "staircase";
   if (source.includes("CAMERA") || source.includes("CCTV")) return "camera";
@@ -285,9 +287,53 @@ function inferNodeType(layer: string, text = ""): NodeType | undefined {
   if (source.includes("QR")) return "qr_checkpoint";
   if (source.includes("ACTUATOR") || source.includes("ALARM")) return "actuator";
   if (source.includes("EXTINGUISHER") || source.includes("FIRE_EQUIPMENT")) return "extinguisher";
-  if (source.includes("CORRIDOR") || source.includes("PATH") || source.includes("HALL") || source.includes("WALKWAY")) return "pathway";
-  if (source.includes("ROOM") || source.includes("UNIT") || source.includes("SUITE") || source.includes("OFFICE")) return "room";
+  if (source.includes("CORRIDOR") || source.includes("PATH") || source.includes("PASSAGE") || source.includes("HALL") || source.includes("WALKWAY")) return "pathway";
+  if (
+    source.includes("ROOM") ||
+    source.includes("UNIT") ||
+    source.includes("SUITE") ||
+    source.includes("OFFICE") ||
+    source.includes("KITCHEN") ||
+    source.includes("BATH") ||
+    source.includes("TOILET") ||
+    source.includes("WASH") ||
+    source.includes("VERANDA") ||
+    source.includes("PARKING") ||
+    source.includes("LOBBY") ||
+    source.includes("STORE")
+  ) {
+    return "room";
+  }
   return undefined;
+}
+
+function makeUniqueNodeLabels(nodes: Array<Omit<Node, "id">>): Array<Omit<Node, "id">> {
+  const counts = new Map<string, number>();
+  const seen = new Map<string, number>();
+
+  for (const node of nodes) {
+    const key = normalizedLabelKey(node.label);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  return nodes.map((node) => {
+    const key = normalizedLabelKey(node.label);
+    const total = counts.get(key) ?? 0;
+    if (total <= 1) {
+      return node;
+    }
+
+    const index = (seen.get(key) ?? 0) + 1;
+    seen.set(key, index);
+    return {
+      ...node,
+      label: `${node.label} ${index}`
+    };
+  });
+}
+
+function normalizedLabelKey(label: string): string {
+  return label.replace(/\s+/g, " ").trim().toUpperCase();
 }
 
 function findLabelInsideSegment(segment: DxfSegment, labels: DxfTextLabel[], usedLabelIds: Set<string>): DxfTextLabel | undefined {

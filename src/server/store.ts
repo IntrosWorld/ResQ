@@ -30,6 +30,12 @@ export class MemoryStore {
     return saved;
   }
 
+  addNodes(nodes: Array<Omit<Node, "id">>): Node[] {
+    const saved = nodes.map((node) => ({ ...node, id: `node-${crypto.randomUUID()}` }));
+    this.state.nodes.push(...saved);
+    return saved;
+  }
+
   updateNode(id: string, patch: Partial<Omit<Node, "id">>): Node | undefined {
     const index = this.state.nodes.findIndex((node) => node.id === id);
     if (index === -1) {
@@ -55,6 +61,12 @@ export class MemoryStore {
   addEdge(edge: Omit<Edge, "id">): Edge {
     const saved = { ...edge, id: `edge-${crypto.randomUUID()}` };
     this.state.edges.push(saved);
+    return saved;
+  }
+
+  addEdges(edges: Array<Omit<Edge, "id">>): Edge[] {
+    const saved = edges.map((edge) => ({ ...edge, id: `edge-${crypto.randomUUID()}` }));
+    this.state.edges.push(...saved);
     return saved;
   }
 
