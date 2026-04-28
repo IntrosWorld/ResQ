@@ -118,4 +118,15 @@ describe("App routes", () => {
     expect(screen.getByRole("button", { name: /start restricted-area detection/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /remove previous simulation data/i })).toBeInTheDocument();
   });
+
+  it("renders the Gemini map assistant page", async () => {
+    window.history.pushState({}, "", "/dashboard/assistant");
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText("SafePath Assistant")).toBeInTheDocument());
+    expect(screen.getByText("Directions and Nearby Help")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/ask for directions/i)).toBeInTheDocument();
+    expect(screen.getByText("Nearest hospital")).toBeInTheDocument();
+  });
 });

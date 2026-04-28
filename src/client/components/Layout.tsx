@@ -1,4 +1,4 @@
-import { Bell, House, Moon, ScanEye, ShieldAlert, Sun, UserSearch } from "lucide-react";
+import { Bell, Bot, House, Moon, ScanEye, ShieldAlert, Sun, UserSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import type { SystemNotification } from "../../shared/types";
 
@@ -11,7 +11,8 @@ interface LayoutProps {
   onCctv?: () => void;
   onCollapse?: () => void;
   onRestricted?: () => void;
-  activeView?: "dashboard" | "cctv" | "collapse" | "restricted";
+  onAssistant?: () => void;
+  activeView?: "dashboard" | "cctv" | "collapse" | "restricted" | "assistant";
   notifications?: SystemNotification[];
   onNotificationClick?: () => void;
   children: ReactNode;
@@ -28,6 +29,7 @@ export function Layout({
   onCctv,
   onCollapse,
   onRestricted,
+  onAssistant,
   activeView = "dashboard",
   notifications = [],
   onNotificationClick,
@@ -65,6 +67,12 @@ export function Layout({
             <button className={activeView === "restricted" ? "home-button active" : "home-button"} onClick={onRestricted}>
               <UserSearch size={17} />
               Restricted
+            </button>
+          ) : null}
+          {onAssistant ? (
+            <button className={activeView === "assistant" ? "home-button active" : "home-button"} onClick={onAssistant}>
+              <Bot size={17} />
+              Assistant
             </button>
           ) : null}
         </div>

@@ -2390,3 +2390,261 @@ html, body, #root {
   background: var(--brand);
   border-radius: 10px;
 }
+
+.assistant-page {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.82fr) minmax(520px, 1.18fr);
+  gap: 18px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.assistant-panel {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  min-height: 0;
+}
+
+.assistant-chat {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.panel-heading h2 {
+  margin: 3px 0 0;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.assistant-quick-prompts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 16px 20px 0;
+}
+
+.assistant-quick-prompts button,
+.assistant-input button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.assistant-quick-prompts button {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.assistant-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 220px;
+  overflow-y: auto;
+  padding: 18px 20px;
+}
+
+.assistant-message {
+  max-width: 88%;
+  white-space: pre-line;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: var(--text);
+  background: var(--surface);
+  line-height: 1.45;
+}
+
+.assistant-message.user {
+  align-self: flex-end;
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+  background: color-mix(in srgb, var(--brand) 14%, var(--surface));
+}
+
+.assistant-message.assistant {
+  align-self: flex-start;
+}
+
+.assistant-message.loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.assistant-message.loading svg {
+  animation: spin 1s linear infinite;
+}
+
+.assistant-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.assistant-input textarea {
+  width: 100%;
+  resize: none;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 12px 14px;
+  font: inherit;
+}
+
+.assistant-input textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+
+.assistant-input button {
+  align-self: end;
+  min-height: 46px;
+  border: 0;
+  border-radius: 14px;
+  padding: 0 18px;
+  background: var(--brand);
+  color: white;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.assistant-input button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.assistant-map-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.assistant-map-shell {
+  position: relative;
+  flex: 1;
+  min-height: 420px;
+  margin: 18px 20px 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.assistant-map-canvas {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+}
+
+.assistant-map-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--muted);
+  padding: 26px;
+}
+
+.assistant-map-placeholder strong {
+  color: var(--text);
+  font-size: 19px;
+}
+
+.assistant-map-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 20px;
+  color: var(--muted);
+}
+
+.assistant-map-status strong,
+.assistant-map-status span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  padding: 8px 11px;
+}
+
+.assistant-map-status strong {
+  color: var(--text);
+}
+
+.places-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-height: 210px;
+  overflow-y: auto;
+  padding: 0 20px 20px;
+}
+
+.places-list article {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 12px;
+}
+
+.places-list span,
+.places-list small {
+  color: var(--muted);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1120px) {
+  .assistant-page {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .assistant-map-shell {
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 760px) {
+  .assistant-input,
+  .assistant-quick-prompts,
+  .places-list {
+    grid-template-columns: 1fr;
+  }
+
+  .assistant-message {
+    max-width: 100%;
+  }
+}

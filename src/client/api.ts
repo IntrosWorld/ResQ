@@ -1,5 +1,15 @@
 import type { AppState, Edge, Hazard, LocalModelStatus, Node, PersonLocation, RouteResult } from "../shared/types";
 
+export interface AssistantChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export type AssistantMapAction =
+  | { kind: "directions"; destination: string }
+  | { kind: "nearby"; placeType: "hospital" | "fire_station"; label: string }
+  | { kind: "nearest_directions"; placeType: "hospital" | "fire_station"; label: string };
+
 export interface BootstrapResponse {
   state: AppState;
   roles: string[];
@@ -88,6 +98,10 @@ export async function clearAllHazards(): Promise<{ state: AppState }> {
 
 export async function calculateRoute(payload: { personId?: string; startNodeId?: string }): Promise<{ route: RouteResult; startNodeId: string }> {
   return fetchJson("/api/routes/calculate", jsonRequest("POST", payload));
+}
+
+export async function sendAssistantMessage(messages: AssistantChatMessage[]): Promise<{ reply: string; configured: boolean; mapAction?: AssistantMapAction }> {
+  return fetchJson("/api/assistant/chat", jsonRequest("POST", { messages }));
 }
 
 function jsonRequest(method: string, body: unknown): RequestInit {

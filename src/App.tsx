@@ -22,6 +22,7 @@ import {
   uploadFloorMap
 } from "./client/api";
 import { AdminDashboard } from "./client/components/AdminDashboard";
+import { AssistantMapPage } from "./client/components/AssistantMapPage";
 import { ClerkDashboard } from "./client/components/ClerkDashboard";
 import { CctvSimulationPage } from "./client/components/CctvSimulationPage";
 import { CollapseDetectionPage } from "./client/components/CollapseDetectionPage";
@@ -292,6 +293,12 @@ export default function App() {
     setNotifications((current) => current.map((notification) => (notification.id === id ? { ...notification, read: true } : notification)));
   }
 
+  const isCctvPage = path.startsWith("/dashboard/cctv");
+  const isCollapsePage = path.startsWith("/dashboard/collapse");
+  const isRestrictedPage = path.startsWith("/dashboard/restricted");
+  const isAssistantPage = path.startsWith("/dashboard/assistant");
+  const isToolPage = isCctvPage || isCollapsePage || isRestrictedPage || isAssistantPage;
+
   if (!path.startsWith("/dashboard")) {
     return <HomePage theme={theme} onThemeToggle={() => setTheme(theme === "dark" ? "light" : "dark")} onDashboard={() => navigate("/dashboard")} />;
   }
@@ -307,14 +314,17 @@ export default function App() {
         onCctv={() => navigate("/dashboard/cctv")}
         onCollapse={() => navigate("/dashboard/collapse")}
         onRestricted={() => navigate("/dashboard/restricted")}
+        onAssistant={() => navigate("/dashboard/assistant")}
         activeView={
-          path.startsWith("/dashboard/cctv")
+          isCctvPage
             ? "cctv"
-            : path.startsWith("/dashboard/collapse")
+            : isCollapsePage
               ? "collapse"
-              : path.startsWith("/dashboard/restricted")
+              : isRestrictedPage
                 ? "restricted"
-                : "dashboard"
+                : isAssistantPage
+                  ? "assistant"
+                  : "dashboard"
         }
         notifications={notifications}
         onNotificationClick={() => {
@@ -322,7 +332,7 @@ export default function App() {
           setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
         }}
       >
-        {path.startsWith("/dashboard/cctv") ? (
+        {isCctvPage ? (
           <CctvSimulationPage
             state={state}
             route={route}
@@ -337,7 +347,7 @@ export default function App() {
           />
         ) : null}
 
-        {path.startsWith("/dashboard/collapse") ? (
+        {isCollapsePage ? (
           <CollapseDetectionPage
             state={state}
             route={route}
@@ -353,7 +363,7 @@ export default function App() {
           />
         ) : null}
 
-        {path.startsWith("/dashboard/restricted") ? (
+        {isRestrictedPage ? (
           <RestrictedAreaPage
             state={state}
             selectedNodeId={selectedNode?.id ?? state.nodes[0]?.id ?? ""}
@@ -366,7 +376,9 @@ export default function App() {
           />
         ) : null}
 
-        {!path.startsWith("/dashboard/cctv") && !path.startsWith("/dashboard/collapse") && !path.startsWith("/dashboard/restricted") && role === "admin" ? (
+        {isAssistantPage ? <AssistantMapPage /> : null}
+
+        {!isToolPage && role === "admin" ? (
           <AdminDashboard
             state={state}
             nodeTypes={nodeTypes}
@@ -396,9 +408,9 @@ export default function App() {
           />
         ) : null}
 
-        {!path.startsWith("/dashboard/cctv") && !path.startsWith("/dashboard/collapse") && !path.startsWith("/dashboard/restricted") && role === "clerk" ? <ClerkDashboard state={state} route={route} /> : null}
+        {!isToolPage && role === "clerk" ? <ClerkDashboard state={state} route={route} /> : null}
 
-        {!path.startsWith("/dashboard/cctv") && !path.startsWith("/dashboard/collapse") && !path.startsWith("/dashboard/restricted") && role === "user" ? (
+        {!isToolPage && role === "user" ? (
           <UserDashboard
             state={state}
             route={route}
