@@ -8,6 +8,7 @@ borrow ResQ-main/
 .vite/
 .vite-temp/
 coverage/
+docs/superpowers/
 yolo_model_bin/*
 fallsafe_model_bin/*
 person_model_bin/*
