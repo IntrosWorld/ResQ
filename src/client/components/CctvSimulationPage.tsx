@@ -104,6 +104,29 @@ export function CctvSimulationPage({
     return () => window.clearInterval(interval);
   }, [monitoring, uploadedVideoUrl, selectedNode?.id, startNode?.id, alertTriggered]);
 
+  function primeSpeech() {
+    if (!window.speechSynthesis) return;
+    const primer = new SpeechSynthesisUtterance(" ");
+    primer.volume = 0;
+    window.speechSynthesis.speak(primer);
+  }
+
+  function speakAlert(hazardType: string) {
+    if (!window.speechSynthesis) return;
+    const text =
+      hazardType === "fire"
+        ? "Fire detected. Sending message to fire brigade."
+        : hazardType === "smoke"
+          ? "Smoke detected. Sending message to fire brigade."
+          : `${hazardType} detected. Authorities have been alerted.`;
+    window.speechSynthesis.cancel();
+    const msg = new SpeechSynthesisUtterance(text);
+    msg.rate = 0.75;
+    msg.pitch = 1;
+    msg.volume = 1;
+    window.speechSynthesis.speak(msg);
+  }
+
   async function runDetection(options: { fromLoop?: boolean } = {}) {
     if (options.fromLoop && (!uploadedVideoUrl || !hasLoadedYoloHazardModel() || !videoRef.current || videoRef.current.paused || videoRef.current.ended)) {
       return;
@@ -137,6 +160,7 @@ export function CctvSimulationPage({
 
     setAlertTriggered(true);
     setMonitoring(false);
+    speakAlert(result.hazardType);
     onDetectedHazard(
       {
         type: result.hazardType,
@@ -379,13 +403,13 @@ export function CctvSimulationPage({
                 <button
                   className={monitoring ? "secondary-action secondary-action--live" : "danger-action"}
                   disabled={busy || !selectedNode}
-                  onClick={() => (monitoring ? stopLiveSimulation() : void startLiveSimulation())}
+                  onClick={() => { if (!monitoring) primeSpeech(); monitoring ? stopLiveSimulation() : void startLiveSimulation(); }}
                 >
                   <RadioTower size={16} />
                   {monitoring ? "Stop detection" : "Start video and detect hazards"}
                 </button>
               ) : (
-                <button className="danger-action" disabled={busy || !selectedNode} onClick={() => void runDetection()}>
+                <button className="danger-action" disabled={busy || !selectedNode} onClick={() => { primeSpeech(); void runDetection(); }}>
                   <ScanEye size={16} />
                   Run sample detection
                 </button>
@@ -429,6 +453,9 @@ export function CctvSimulationPage({
                 <span>{route.message}</span>
               </div>
             ) : null}
+            <button className="secondary-action" onClick={() => speakAlert("fire")}>
+              Test audio alert
+            </button>
             <button className="secondary-action" disabled={!startNode} onClick={() => startNode && onCalculateRoute({ startNodeId: startNode.id })}>
               Calculate route only
             </button>

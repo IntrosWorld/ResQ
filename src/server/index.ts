@@ -516,7 +516,7 @@ function parseFallbackMapAction(message: string): AssistantMapAction | undefined
   const normalized = message.toLowerCase();
   if (
     (normalized.includes("direction") || normalized.includes("route") || normalized.includes("navigate") || normalized.includes("how to get")) &&
-    (normalized.includes("nearest") || normalized.includes("nearby")) &&
+    (normalized.includes("nearest") || normalized.includes("nearby") || normalized.includes("near")) &&
     normalized.includes("hospital")
   ) {
     return { kind: "nearest_directions", placeType: "hospital", label: "hospitals" };
@@ -524,17 +524,17 @@ function parseFallbackMapAction(message: string): AssistantMapAction | undefined
 
   if (
     (normalized.includes("direction") || normalized.includes("route") || normalized.includes("navigate") || normalized.includes("how to get")) &&
-    (normalized.includes("nearest") || normalized.includes("nearby")) &&
+    (normalized.includes("nearest") || normalized.includes("nearby") || normalized.includes("near")) &&
     (normalized.includes("fire station") || normalized.includes("firestation"))
   ) {
     return { kind: "nearest_directions", placeType: "fire_station", label: "fire stations" };
   }
 
-  if ((normalized.includes("nearest") || normalized.includes("nearby")) && normalized.includes("hospital")) {
+  if (normalized.includes("hospital") || normalized.includes("clinic") || normalized.includes("doctor") || normalized.includes("medical") || normalized.includes("teeth") || normalized.includes("dental") || normalized.includes("dentist") || normalized.includes("emergency")) {
     return { kind: "nearby", placeType: "hospital", label: "hospitals" };
   }
 
-  if ((normalized.includes("nearest") || normalized.includes("nearby")) && (normalized.includes("fire station") || normalized.includes("firestation"))) {
+  if (normalized.includes("fire station") || normalized.includes("firestation") || normalized.includes("fire brigade") || normalized.includes("firefighter")) {
     return { kind: "nearby", placeType: "fire_station", label: "fire stations" };
   }
 

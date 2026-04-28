@@ -62,7 +62,8 @@ export function AssistantMapPage() {
           zoom: 13,
           mapTypeControl: false,
           streetViewControl: false,
-          fullscreenControl: true
+          fullscreenControl: true,
+          mapId: "DEMO_MAP_ID"
         });
         mapRef.current = map;
         directionsServiceRef.current = new window.google.maps.DirectionsService();
@@ -187,7 +188,7 @@ export function AssistantMapPage() {
 
         const bounds = new window.google.maps.LatLngBounds();
         const nextPlaces = results.slice(0, 6).map((place) => {
-          const marker = new window.google.maps.Marker({
+          const marker = new window.google.maps.marker.AdvancedMarkerElement({
             map: mapRef.current,
             position: place.geometry?.location,
             title: place.name
@@ -319,7 +320,7 @@ export function AssistantMapPage() {
   }
 
   function clearRouteAndMarkers() {
-    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current.forEach((marker) => { marker.map = null; });
     markersRef.current = [];
     directionsRendererRef.current?.setDirections({ routes: [] });
   }
@@ -329,22 +330,17 @@ export function AssistantMapPage() {
       return;
     }
 
-    currentLocationMarkerRef.current?.setMap(null);
-    currentLocationAccuracyRef.current?.setMap(null);
+    if (currentLocationMarkerRef.current) currentLocationMarkerRef.current.map = null;
+    if (currentLocationAccuracyRef.current) currentLocationAccuracyRef.current.map = null;
 
-    currentLocationMarkerRef.current = new window.google.maps.Marker({
+    const dotEl = document.createElement("div");
+    dotEl.style.cssText = "width:16px;height:16px;background:#4285f4;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4)";
+    currentLocationMarkerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
       map: mapRef.current,
       position: location,
       title: "Your estimated location",
-      zIndex: 1000,
-      icon: {
-        path: window.google.maps.SymbolPath.CIRCLE,
-        scale: 8,
-        fillColor: "#4285f4",
-        fillOpacity: 1,
-        strokeColor: "#ffffff",
-        strokeWeight: 3
-      }
+      content: dotEl,
+      zIndex: 1000
     });
 
     currentLocationAccuracyRef.current = new window.google.maps.Circle({
@@ -459,7 +455,7 @@ function parseFallbackMapAction(message: string): AssistantMapAction | null {
   const normalized = message.toLowerCase();
   if (
     (normalized.includes("direction") || normalized.includes("route") || normalized.includes("navigate") || normalized.includes("how to get")) &&
-    (normalized.includes("nearest") || normalized.includes("nearby")) &&
+    (normalized.includes("nearest") || normalized.includes("nearby") || normalized.includes("near")) &&
     normalized.includes("hospital")
   ) {
     return { kind: "nearest_directions", placeType: "hospital", label: "hospitals" };
@@ -467,17 +463,17 @@ function parseFallbackMapAction(message: string): AssistantMapAction | null {
 
   if (
     (normalized.includes("direction") || normalized.includes("route") || normalized.includes("navigate") || normalized.includes("how to get")) &&
-    (normalized.includes("nearest") || normalized.includes("nearby")) &&
+    (normalized.includes("nearest") || normalized.includes("nearby") || normalized.includes("near")) &&
     (normalized.includes("fire station") || normalized.includes("firestation"))
   ) {
     return { kind: "nearest_directions", placeType: "fire_station", label: "fire stations" };
   }
 
-  if ((normalized.includes("nearest") || normalized.includes("nearby")) && normalized.includes("hospital")) {
+  if (normalized.includes("hospital") || normalized.includes("clinic") || normalized.includes("doctor") || normalized.includes("medical") || normalized.includes("teeth") || normalized.includes("dental") || normalized.includes("dentist") || normalized.includes("emergency")) {
     return { kind: "nearby", placeType: "hospital", label: "hospitals" };
   }
 
-  if ((normalized.includes("nearest") || normalized.includes("nearby")) && (normalized.includes("fire station") || normalized.includes("firestation"))) {
+  if (normalized.includes("fire station") || normalized.includes("firestation") || normalized.includes("fire brigade") || normalized.includes("firefighter")) {
     return { kind: "nearby", placeType: "fire_station", label: "fire stations" };
   }
 
@@ -518,7 +514,7 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
     }
 
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places,marker`;
     script.async = true;
     script.defer = true;
     script.dataset.resqGoogleMaps = "true";
