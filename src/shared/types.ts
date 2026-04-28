@@ -139,3 +139,15 @@ export interface AppState {
   hazards: Hazard[];
   people: PersonLocation[];
 }
+
+export interface LocalModelStatus {
+  hasOnnx: boolean;
+  hasBestPt: boolean;
+  hasPytorchBin: boolean;
+  hasConfig: boolean;
+  hasSafetensors: boolean;
+  onnxPath?: string;
+  bestPtPath?: string;
+  pytorchBinPath?: string;
+  message: string;
+}

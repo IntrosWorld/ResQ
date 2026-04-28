@@ -1,7 +1,7 @@
 import cors from "cors";
 import express from "express";
 import multer from "multer";
-import { mkdir } from "node:fs/promises";
+import { access, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ZodError } from "zod";
@@ -54,6 +54,50 @@ app.get("/api/bootstrap", (_req, res) => {
   });
 });
 
+app.get("/api/models/local-yolo/status", async (_req, res) => {
+  const modelDir = path.join(rootDir, "yolo_model_bin");
+  const onnxPath = path.join(modelDir, "model.onnx");
+  const bestPtPath = path.join(modelDir, "best.pt");
+  const pytorchBinPath = path.join(modelDir, "pytorch_model.bin");
+  const configPath = path.join(modelDir, "config.json");
+  const safetensorsPath = path.join(modelDir, "model.safetensors");
+  const [hasOnnx, hasBestPt, hasPytorchBin, hasConfig, hasSafetensors] = await Promise.all([
+    fileExists(onnxPath),
+    fileExists(bestPtPath),
+    fileExists(pytorchBinPath),
+    fileExists(configPath),
+    fileExists(safetensorsPath)
+  ]);
+
+  res.json({
+    hasOnnx,
+    hasBestPt,
+    hasPytorchBin,
+    hasConfig,
+    hasSafetensors,
+    onnxPath: hasOnnx ? onnxPath : undefined,
+    bestPtPath: hasBestPt ? bestPtPath : undefined,
+    pytorchBinPath: hasPytorchBin ? pytorchBinPath : undefined,
+    message: hasOnnx
+      ? "Local ONNX model found. The CCTV page can use this model directly."
+      : hasBestPt
+        ? "best.pt found. Export it with Ultralytics to yolo_model_bin/model.onnx for browser inference."
+        : hasPytorchBin || hasSafetensors || hasConfig
+          ? "Hugging Face model files found, but browser inference needs model.onnx. For this repo, best.pt is the easiest file to export."
+          : "No local YOLO model found in yolo_model_bin."
+  });
+});
+
+app.get("/api/models/local-yolo/model.onnx", async (_req, res) => {
+  const onnxPath = path.join(rootDir, "yolo_model_bin", "model.onnx");
+  if (!(await fileExists(onnxPath))) {
+    res.status(404).json({ error: "Local model.onnx not found. Export your PyTorch YOLO weights to yolo_model_bin/model.onnx first." });
+    return;
+  }
+
+  res.sendFile(onnxPath);
+});
+
 app.post("/api/cad/upload", upload.single("floorMap"), async (req, res, next) => {
   try {
     if (!req.file) {
@@ -66,6 +110,10 @@ app.post("/api/cad/upload", upload.single("floorMap"), async (req, res, next) =>
   } catch (error) {
     next(error);
   }
+});
+
+app.post("/api/cad/reset", (_req, res) => {
+  res.json({ state: store.resetToSample() });
 });
 
 app.post("/api/nodes", (req, res, next) => {
@@ -215,3 +263,12 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 app.listen(port, () => {
   console.log(`SafePath AI backend listening on http://localhost:${port}`);
 });
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}

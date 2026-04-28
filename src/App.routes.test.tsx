@@ -63,6 +63,7 @@ describe("App routes", () => {
 
     await waitFor(() => expect(screen.getByText("Building Response Console")).toBeInTheDocument());
     expect(screen.getByLabelText("Add node type")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /reset to default map/i })).toBeInTheDocument();
     expect(screen.queryByText("Add type")).not.toBeInTheDocument();
   });
 
@@ -80,5 +81,16 @@ describe("App routes", () => {
     render(<App />);
 
     await waitFor(() => expect(screen.getByRole("button", { name: /auto cameras/i })).toBeInTheDocument());
+  });
+
+  it("renders the CCTV hazard simulation page", async () => {
+    window.history.pushState({}, "", "/dashboard/cctv");
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText("Simulating Hazard Through CCTV")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /run sample detection/i })).toBeInTheDocument();
+    expect(screen.getByText("Upload fire/smoke YOLO ONNX")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /reset cctv simulation/i })).toBeInTheDocument();
   });
 });

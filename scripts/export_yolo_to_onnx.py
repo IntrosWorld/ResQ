@@ -1,0 +1,27 @@
+from pathlib import Path
+
+from ultralytics import YOLO
+
+
+ROOT = Path(__file__).resolve().parents[1]
+MODEL_DIR = ROOT / "yolo_model_bin"
+PT_PATH = MODEL_DIR / "best.pt"
+
+
+def main() -> None:
+    if not PT_PATH.exists():
+        raise SystemExit(f"Missing {PT_PATH}. Download best.pt from the Hugging Face repo first.")
+
+    model = YOLO(str(PT_PATH))
+    exported = model.export(format="onnx", imgsz=640, opset=12, simplify=True)
+    exported_path = Path(exported)
+    target = MODEL_DIR / "model.onnx"
+
+    if exported_path.resolve() != target.resolve():
+        target.write_bytes(exported_path.read_bytes())
+
+    print(f"Exported ONNX model to {target}")
+
+
+if __name__ == "__main__":
+    main()

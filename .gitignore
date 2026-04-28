@@ -1,12 +1,16 @@
 node_modules/
 dist/
 uploads/
+yolo_model_bin/
 .env
 .env.local
 *.log
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
+__pycache__/
+*.pyc
 
 # Building CAD files can contain sensitive floor-plan data.
 *.dwg
+*.dxf

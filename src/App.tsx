@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppState, Edge, Hazard, Node, PersonLocation, Point, RouteResult } from "./shared/types";
+import type { AppState, Edge, Hazard, LocalModelStatus, Node, PersonLocation, Point, RouteResult } from "./shared/types";
 import { createSampleState } from "./shared/sampleData";
 import {
   autoGenerateCameras,
@@ -12,6 +12,8 @@ import {
   createNode,
   deleteEdge,
   deleteNode,
+  getLocalYoloModelStatus,
+  resetFloorMap,
   updateEdge,
   updateNode,
   updatePerson,
@@ -19,6 +21,7 @@ import {
 } from "./client/api";
 import { AdminDashboard } from "./client/components/AdminDashboard";
 import { ClerkDashboard } from "./client/components/ClerkDashboard";
+import { CctvSimulationPage } from "./client/components/CctvSimulationPage";
 import { HomePage } from "./client/components/HomePage";
 import { Layout } from "./client/components/Layout";
 import { UserDashboard } from "./client/components/UserDashboard";
@@ -51,6 +54,7 @@ export default function App() {
   const [message, setMessage] = useState("");
   const [autoPathSummary, setAutoPathSummary] = useState<string>("");
   const [autoCameraSummary, setAutoCameraSummary] = useState<string>("");
+  const [localModelStatus, setLocalModelStatus] = useState<LocalModelStatus | undefined>();
   const [path, setPath] = useState(() => window.location.pathname);
 
   useEffect(() => {
@@ -78,6 +82,7 @@ export default function App() {
       setNodeTypes(response.nodeTypes);
       setSelectedPersonId(response.state.people[0]?.id ?? "");
       setSelectedNodeId(response.state.nodes.find((node) => node.type === "junction")?.id ?? response.state.nodes[0]?.id ?? "");
+      setLocalModelStatus(await getLocalYoloModelStatus());
     });
   }, []);
 
@@ -105,6 +110,19 @@ export default function App() {
       const response = await uploadFloorMap(file);
       setServerState(response.state);
       setRoute(undefined);
+      setAutoPathSummary("");
+      setAutoCameraSummary("");
+    });
+  }
+
+  function handleResetFloorMap() {
+    run("Default map restored.", async () => {
+      const response = await resetFloorMap();
+      setServerState(response.state);
+      setRoute(undefined);
+      setSelectedNodeId(response.state.nodes.find((node) => node.type === "junction")?.id ?? response.state.nodes[0]?.id ?? "");
+      setSelectedPersonId(response.state.people[0]?.id ?? "");
+      setPlacingNodeType(null);
       setAutoPathSummary("");
       setAutoCameraSummary("");
     });
@@ -211,6 +229,23 @@ export default function App() {
     });
   }
 
+  function handleCctvDetectedHazard(hazard: Omit<Hazard, "id" | "createdAt">, routePayload: { personId?: string; startNodeId?: string }) {
+    run("CCTV hazard detected and route recalculated.", async () => {
+      const hazardResponse = await createHazard(hazard);
+      setServerState(hazardResponse.state);
+      const routeResponse = await calculateRoute(routePayload);
+      setRoute(routeResponse.route);
+    });
+  }
+
+  function handleResetCctvSimulation() {
+    run("CCTV simulation reset.", async () => {
+      const response = await clearAllHazards();
+      setServerState(response.state);
+      setRoute(undefined);
+    });
+  }
+
   function navigate(to: string) {
     window.history.pushState({}, "", to);
     setPath(to);
@@ -229,8 +264,25 @@ export default function App() {
         onRoleChange={setRole}
         onThemeToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
         onHome={() => navigate("/")}
+        onCctv={() => navigate("/dashboard/cctv")}
+        activeView={path.startsWith("/dashboard/cctv") ? "cctv" : "dashboard"}
       >
-        {role === "admin" ? (
+        {path.startsWith("/dashboard/cctv") ? (
+          <CctvSimulationPage
+            state={state}
+            route={route}
+            selectedNodeId={selectedNode?.id ?? state.nodes[0]?.id ?? ""}
+            busy={busy}
+            message={message}
+            localModelStatus={localModelStatus}
+            onSelectNode={setSelectedNodeId}
+            onDetectedHazard={handleCctvDetectedHazard}
+            onCalculateRoute={handleCalculateRoute}
+            onResetSimulation={handleResetCctvSimulation}
+          />
+        ) : null}
+
+        {!path.startsWith("/dashboard/cctv") && role === "admin" ? (
           <AdminDashboard
             state={state}
             nodeTypes={nodeTypes}
@@ -243,6 +295,7 @@ export default function App() {
             onPlaceNodeType={setPlacingNodeType}
             onMapClick={handleMapClick}
             onUpload={handleUpload}
+            onResetFloorMap={handleResetFloorMap}
             onUpdateNode={handleUpdateNode}
             onDeleteNode={handleDeleteNode}
             onCreateEdge={handleCreateEdge}
@@ -259,9 +312,9 @@ export default function App() {
           />
         ) : null}
 
-        {role === "clerk" ? <ClerkDashboard state={state} route={route} /> : null}
+        {!path.startsWith("/dashboard/cctv") && role === "clerk" ? <ClerkDashboard state={state} route={route} /> : null}
 
-        {role === "user" ? (
+        {!path.startsWith("/dashboard/cctv") && role === "user" ? (
           <UserDashboard
             state={state}
             route={route}

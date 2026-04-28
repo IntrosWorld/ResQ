@@ -1,4 +1,4 @@
-import { House, Moon, Sun } from "lucide-react";
+import { House, Moon, ScanEye, Sun } from "lucide-react";
 import type { ReactNode } from "react";
 
 interface LayoutProps {
@@ -7,12 +7,14 @@ interface LayoutProps {
   onRoleChange: (role: "admin" | "clerk" | "user") => void;
   onThemeToggle: () => void;
   onHome?: () => void;
+  onCctv?: () => void;
+  activeView?: "dashboard" | "cctv";
   children: ReactNode;
 }
 
 const roles: Array<LayoutProps["role"]> = ["admin", "clerk", "user"];
 
-export function Layout({ role, theme, onRoleChange, onThemeToggle, onHome, children }: LayoutProps) {
+export function Layout({ role, theme, onRoleChange, onThemeToggle, onHome, onCctv, activeView = "dashboard", children }: LayoutProps) {
   return (
     <main className="shell" id="dashboard">
       <header className="topbar">
@@ -20,12 +22,20 @@ export function Layout({ role, theme, onRoleChange, onThemeToggle, onHome, child
           <p className="topbar__kicker">SafePath AI</p>
           <h2>Building Response Console</h2>
         </div>
-        {onHome ? (
-          <button className="home-button" onClick={onHome}>
-            <House size={17} />
-            Home
-          </button>
-        ) : null}
+        <div className="topbar-actions">
+          {onHome ? (
+            <button className="home-button" onClick={onHome}>
+              <House size={17} />
+              Home
+            </button>
+          ) : null}
+          {onCctv ? (
+            <button className={activeView === "cctv" ? "home-button active" : "home-button"} onClick={onCctv}>
+              <ScanEye size={17} />
+              CCTV
+            </button>
+          ) : null}
+        </div>
         <nav className="role-tabs" aria-label="Dashboard role">
           {roles.map((item) => (
             <button key={item} className={role === item ? "active" : ""} onClick={() => onRoleChange(item)}>

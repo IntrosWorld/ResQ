@@ -1,4 +1,4 @@
-import { AlertTriangle, Camera, CheckCircle2, Link2, LocateFixed, MapPlus, Route, Save, Sparkles, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, Camera, CheckCircle2, Link2, LocateFixed, MapPlus, RotateCcw, Route, Save, Sparkles, Trash2, Upload } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { AppState, Edge, Hazard, Node, PersonLocation, Point, RouteResult } from "../../shared/types";
 import { MapCanvas } from "./MapCanvas";
@@ -15,6 +15,7 @@ interface AdminDashboardProps {
   onPlaceNodeType: (type: Node["type"] | null) => void;
   onMapClick: (point: Point) => void;
   onUpload: (file: File) => void;
+  onResetFloorMap: () => void;
   onUpdateNode: (nodeId: string, patch: Partial<Omit<Node, "id">>) => void;
   onDeleteNode: (nodeId: string) => void;
   onCreateEdge: (edge: Omit<Edge, "id">) => void;
@@ -136,6 +137,10 @@ export function AdminDashboard(props: AdminDashboardProps) {
             <span>Recommended DWG layers: WALLS, ROOMS, DOORS, STAIRS, EXITS, CAMERAS, SENSORS, BEACONS, QR_POINTS</span>
             <span>Manual node editing stays available after every upload.</span>
           </div>
+          <button className="secondary-action" disabled={props.busy} onClick={props.onResetFloorMap}>
+            <RotateCcw size={16} />
+            Reset to default map
+          </button>
         </Panel>
 
         <Panel title="Node editor" icon={<MapPlus size={18} />}>

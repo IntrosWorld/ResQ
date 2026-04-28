@@ -13,6 +13,11 @@ export class MemoryStore {
     return this.getState();
   }
 
+  resetToSample(): AppState {
+    this.state = createSampleState();
+    return this.getState();
+  }
+
   applyFloorMapImport(floorMap: FloorMap, inferredNodes: Array<Omit<Node, "id">>): AppState {
     this.state.floorMap = floorMap;
     if (floorMap.importStatus !== "unsupported") {

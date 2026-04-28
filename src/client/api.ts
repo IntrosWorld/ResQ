@@ -1,4 +1,4 @@
-import type { AppState, Edge, Hazard, Node, PersonLocation, RouteResult } from "../shared/types";
+import type { AppState, Edge, Hazard, LocalModelStatus, Node, PersonLocation, RouteResult } from "../shared/types";
 
 export interface BootstrapResponse {
   state: AppState;
@@ -20,10 +20,18 @@ export async function bootstrap(): Promise<BootstrapResponse> {
   return fetchJson("/api/bootstrap");
 }
 
+export async function getLocalYoloModelStatus(): Promise<LocalModelStatus> {
+  return fetchJson("/api/models/local-yolo/status");
+}
+
 export async function uploadFloorMap(file: File): Promise<{ state: AppState }> {
   const form = new FormData();
   form.append("floorMap", file);
   return fetchJson("/api/cad/upload", { method: "POST", body: form });
+}
+
+export async function resetFloorMap(): Promise<{ state: AppState }> {
+  return fetchJson("/api/cad/reset", jsonRequest("POST", {}));
 }
 
 export async function createNode(node: Omit<Node, "id">): Promise<{ node: Node; state: AppState }> {
