@@ -1,5 +1,5 @@
 {
-  "name": "safepath-ai",
+  "name": "resq-ai",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -19,7 +19,7 @@
     "db:push": "tsx src/server/db/applySchema.ts"
   },
   "keywords": [],
-  "author": "SafePath AI",
+  "author": "ResQ",
   "license": "ISC",
   "description": "",
   "dependencies": {

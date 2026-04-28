@@ -23,7 +23,7 @@ import {
 } from "./client/api";
 import { AdminDashboard } from "./client/components/AdminDashboard";
 import { AssistantMapPage } from "./client/components/AssistantMapPage";
-import { ClerkDashboard } from "./client/components/ClerkDashboard";
+import { StaffDashboard } from "./client/components/StaffDashboard";
 import { CctvSimulationPage } from "./client/components/CctvSimulationPage";
 import { CollapseDetectionPage } from "./client/components/CollapseDetectionPage";
 import { HomePage } from "./client/components/HomePage";
@@ -50,8 +50,8 @@ const defaultNodeTypes: Node["type"][] = [
 export default function App() {
   const [state, setState] = useState<AppState>(() => createSampleState());
   const [nodeTypes, setNodeTypes] = useState<Node["type"][]>(defaultNodeTypes);
-  const [role, setRole] = useState<"admin" | "clerk" | "user">("admin");
-  const [theme, setTheme] = useState<"light" | "dark">(() => (localStorage.getItem("safepath-theme") as "light" | "dark") || "dark");
+  const [role, setRole] = useState<"admin" | "staff" | "user">("admin");
+  const [theme, setTheme] = useState<"light" | "dark">(() => (localStorage.getItem("resq-theme") as "light" | "dark") || "dark");
   const [selectedNodeId, setSelectedNodeId] = useState<string>("junction-main");
   const [selectedPersonId, setSelectedPersonId] = useState<string>("guest-a");
   const [placingNodeType, setPlacingNodeType] = useState<Node["type"] | null>(null);
@@ -69,7 +69,7 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem("safepath-theme", theme);
+    localStorage.setItem("resq-theme", theme);
   }, [theme]);
 
   useEffect(() => {
@@ -86,7 +86,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    run("Loaded SafePath demo state.", async () => {
+    run("Loaded ResQ demo state.", async () => {
       const response = await bootstrap();
       setState(response.state);
       setNodeTypes(response.nodeTypes);
@@ -311,6 +311,7 @@ export default function App() {
         onRoleChange={setRole}
         onThemeToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
         onHome={() => navigate("/")}
+        onDashboard={() => navigate("/dashboard")}
         onCctv={() => navigate("/dashboard/cctv")}
         onCollapse={() => navigate("/dashboard/collapse")}
         onRestricted={() => navigate("/dashboard/restricted")}
@@ -408,7 +409,7 @@ export default function App() {
           />
         ) : null}
 
-        {!isToolPage && role === "clerk" ? <ClerkDashboard state={state} route={route} /> : null}
+        {!isToolPage && role === "staff" ? <StaffDashboard state={state} route={route} /> : null}
 
         {!isToolPage && role === "user" ? (
           <UserDashboard

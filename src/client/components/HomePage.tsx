@@ -31,7 +31,7 @@ const workflow = [
 
 const modules = [
   "Admin map onboarding",
-  "Clerk incident monitoring",
+  "Staff incident monitoring",
   "Guest evacuation guidance",
   "Sensor and camera event API",
   "BLE and QR checkpoint support",
@@ -44,7 +44,7 @@ export function HomePage({ theme, onThemeToggle, onDashboard }: HomePageProps) {
       <nav className="site-nav" aria-label="Homepage">
         <button className="site-brand" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
           <ShieldAlert size={19} />
-          <span>SafePath AI</span>
+          <span>ResQ</span>
         </button>
         <div className="site-nav__links">
           <a href="#how">How it works</a>
@@ -86,7 +86,7 @@ export function HomePage({ theme, onThemeToggle, onDashboard }: HomePageProps) {
             <Radio size={16} />
             Indoor crisis-response platform
           </p>
-          <h1>SafePath AI</h1>
+          <h1>ResQ</h1>
           <p className="site-hero__lead">
             Turn building maps, sensors, cameras, BLE beacons, and QR checkpoints into live evacuation guidance for hotels and large facilities.
           </p>
@@ -100,7 +100,7 @@ export function HomePage({ theme, onThemeToggle, onDashboard }: HomePageProps) {
             </a>
           </div>
         </div>
-        <div className="site-hero__status" aria-label="SafePath system status preview">
+        <div className="site-hero__status" aria-label="ResQ system status preview">
           <span>
             <Building2 size={15} />
             Floor graph online
@@ -117,7 +117,7 @@ export function HomePage({ theme, onThemeToggle, onDashboard }: HomePageProps) {
       <section className="site-section site-section--light" id="how">
         <div className="site-section__header">
           <p className="site-kicker">Operating flow</p>
-          <h2>How SafePath Works</h2>
+          <h2>How ResQ Works</h2>
           <p>One setup workflow becomes a live emergency graph that every role can use during drills or incidents.</p>
         </div>
         <div className="workflow-grid">

@@ -3,12 +3,12 @@ import type { AppState, RouteResult } from "../../shared/types";
 import { resolvePersonStartNode } from "../../shared/routing";
 import { MapCanvas } from "./MapCanvas";
 
-interface ClerkDashboardProps {
+interface StaffDashboardProps {
   state: AppState;
   route?: RouteResult;
 }
 
-export function ClerkDashboard({ state, route }: ClerkDashboardProps) {
+export function StaffDashboard({ state, route }: StaffDashboardProps) {
   const activeHazards = state.hazards.filter((hazard) => hazard.active);
   const exitCount = state.nodes.filter((node) => node.type === "exit").length;
 

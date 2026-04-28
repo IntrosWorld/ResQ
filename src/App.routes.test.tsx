@@ -8,7 +8,7 @@ import { createSampleState } from "./shared/sampleData";
 
 const bootstrapResponse = {
   state: createSampleState(),
-  roles: ["admin", "clerk", "user"],
+  roles: ["admin", "staff", "user"],
   nodeTypes: ["room", "pathway", "corridor", "junction", "staircase", "exit", "extinguisher", "camera", "sensor", "actuator", "ble_beacon", "qr_checkpoint"],
   cadRequirements: {
     accepted: ["dwg", "dxf", "svg", "png", "jpg", "jpeg"],
@@ -40,8 +40,8 @@ describe("App routes", () => {
   it("renders the public one-page homepage without the dashboard console", async () => {
     render(<App />);
 
-    expect(screen.getByRole("heading", { level: 1, name: "SafePath AI" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "How SafePath Works" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "ResQ" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "How ResQ Works" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Designed For Custom Building Hardware" })).toBeInTheDocument();
     expect(screen.queryByText("Building Response Console")).not.toBeInTheDocument();
   });
@@ -52,7 +52,7 @@ describe("App routes", () => {
     render(<App />);
 
     await waitFor(() => expect(screen.getByText("Building Response Console")).toBeInTheDocument());
-    expect(screen.queryByRole("heading", { name: "How SafePath Works" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "How ResQ Works" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Designed For Custom Building Hardware" })).not.toBeInTheDocument();
   });
 
@@ -124,7 +124,7 @@ describe("App routes", () => {
 
     render(<App />);
 
-    await waitFor(() => expect(screen.getByText("SafePath Assistant")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("ResQ Assistant")).toBeInTheDocument());
     expect(screen.getByText("Directions and Nearby Help")).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/ask for directions/i)).toBeInTheDocument();
     expect(screen.getByText("Nearest hospital")).toBeInTheDocument();

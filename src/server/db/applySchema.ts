@@ -18,7 +18,7 @@ const client = new pg.Client({ connectionString: databaseUrl });
 try {
   await client.connect();
   await client.query(schemaSql);
-  console.log("SafePath AI schema applied successfully.");
+  console.log("ResQ schema applied successfully.");
 } finally {
   await client.end();
 }

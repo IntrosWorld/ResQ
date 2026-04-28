@@ -39,13 +39,13 @@ app.use(
 app.use(express.json({ limit: "2mb" }));
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "safepath-ai", persistence: process.env.DATABASE_URL ? "postgres-ready" : "memory" });
+  res.json({ ok: true, service: "resq-ai", persistence: process.env.DATABASE_URL ? "postgres-ready" : "memory" });
 });
 
 app.get("/api/bootstrap", (_req, res) => {
   res.json({
     state: store.getState(),
-    roles: ["admin", "clerk", "user"],
+    roles: ["admin", "staff", "user"],
     nodeTypes: ["room", "pathway", "corridor", "junction", "staircase", "exit", "extinguisher", "camera", "sensor", "actuator", "ble_beacon", "qr_checkpoint"],
     cadRequirements: {
       accepted: ["dwg", "dxf", "svg", "png", "jpg", "jpeg"],
@@ -344,7 +344,7 @@ app.post("/api/assistant/chat", async (req, res, next) => {
           parts: [
             {
               text:
-                "You are SafePath AI's operations assistant for emergency response teams. Be concise, practical, and calm. You can answer normal chat questions, explain evacuation decisions, and help with external map requests. When the user asks for directions, hospitals, fire stations, or other nearby places, acknowledge that the browser map is handling the visual route or place search."
+                "You are ResQ's operations assistant for emergency response teams. Be concise, practical, and calm. You can answer normal chat questions, explain evacuation decisions, and help with external map requests. When the user asks for directions, hospitals, fire stations, or other nearby places, acknowledge that the browser map is handling the visual route or place search."
             }
           ]
         },
@@ -447,7 +447,7 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 });
 
 app.listen(port, () => {
-  console.log(`SafePath AI backend listening on http://localhost:${port}`);
+  console.log(`ResQ backend listening on http://localhost:${port}`);
 });
 
 async function fileExists(filePath: string): Promise<boolean> {

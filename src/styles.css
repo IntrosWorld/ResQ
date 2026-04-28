@@ -2346,7 +2346,7 @@ html, body, #root {
   margin-bottom: 18px !important;
 }
 
-.cctv-page, .admin-dashboard, .user-dashboard, .clerk-dashboard {
+.cctv-page, .admin-dashboard, .user-dashboard, .staff-dashboard {
   display: flex;
   flex-direction: column;
   flex: 1;

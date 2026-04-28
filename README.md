@@ -1,6 +1,6 @@
-# SafePath AI
+# ResQ
 
-SafePath AI is a plug-and-play indoor crisis-response demo for hotels and large buildings. It includes a modern web UI, backend API, editable floor graph, sample map, BLE/QR people simulation, hazard simulation, and safest-route calculation.
+ResQ is a plug-and-play indoor crisis-response demo for hotels and large buildings. It includes a modern web UI, backend API, editable floor graph, sample map, BLE/QR people simulation, hazard simulation, and safest-route calculation.
 
 ## Run Locally
 
@@ -39,7 +39,7 @@ DXF files are parsed directly for preview geometry, including lines, lightweight
 ## Phase 1 Features
 
 - Admin dashboard: upload map, place/edit/delete nodes, connect graph edges, simulate hazards, simulate BLE/QR people locations, calculate route, and review final nodes.
-- Clerk dashboard: monitor active hazards, people locations, route state, exits, and response actions.
+- Staff dashboard: monitor active hazards, people locations, route state, exits, and response actions.
 - User dashboard: pick a simulated user, confirm QR checkpoint, and view step-by-step evacuation guidance.
 - Dark and light theme toggle.
 - Sample hotel floor map with rooms, corridors, exits, devices, BLE beacon, QR checkpoint, and people.

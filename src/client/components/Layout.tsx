@@ -1,24 +1,25 @@
-import { Bell, Bot, House, Moon, ScanEye, ShieldAlert, Sun, UserSearch } from "lucide-react";
+import { Bell, Bot, House, LayoutDashboard, Moon, ScanEye, ShieldAlert, Sun, UserSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import type { SystemNotification } from "../../shared/types";
 
 interface LayoutProps {
-  role: "admin" | "clerk" | "user";
+  role: "admin" | "staff" | "user";
   theme: "light" | "dark";
-  onRoleChange: (role: "admin" | "clerk" | "user") => void;
+  onRoleChange: (role: "admin" | "staff" | "user") => void;
   onThemeToggle: () => void;
   onHome?: () => void;
   onCctv?: () => void;
   onCollapse?: () => void;
   onRestricted?: () => void;
   onAssistant?: () => void;
+  onDashboard?: () => void;
   activeView?: "dashboard" | "cctv" | "collapse" | "restricted" | "assistant";
   notifications?: SystemNotification[];
   onNotificationClick?: () => void;
   children: ReactNode;
 }
 
-const roles: Array<LayoutProps["role"]> = ["admin", "clerk", "user"];
+const roles: Array<LayoutProps["role"]> = ["admin", "staff", "user"];
 
 export function Layout({
   role,
@@ -30,6 +31,7 @@ export function Layout({
   onCollapse,
   onRestricted,
   onAssistant,
+  onDashboard,
   activeView = "dashboard",
   notifications = [],
   onNotificationClick,
@@ -41,7 +43,7 @@ export function Layout({
     <main className="shell" id="dashboard">
       <header className="topbar">
         <div>
-          <p className="topbar__kicker">SafePath AI</p>
+          <p className="topbar__kicker">ResQ</p>
           <h2>Building Response Console</h2>
         </div>
         <div className="topbar-actions">
@@ -51,10 +53,16 @@ export function Layout({
               Home
             </button>
           ) : null}
+          {onDashboard ? (
+            <button className={activeView === "dashboard" ? "home-button active" : "home-button"} onClick={onDashboard}>
+              <LayoutDashboard size={17} />
+              Dashboard
+            </button>
+          ) : null}
           {onCctv ? (
             <button className={activeView === "cctv" ? "home-button active" : "home-button"} onClick={onCctv}>
               <ScanEye size={17} />
-              CCTV
+              Fire/Fog
             </button>
           ) : null}
           {onCollapse ? (

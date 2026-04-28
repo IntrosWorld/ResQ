@@ -57,7 +57,7 @@ export const sampleEdges: Edge[] = [
 export const samplePeople: PersonLocation[] = [
   { id: "guest-a", label: "Guest A", role: "guest", bleNodeId: "room-101", confidence: 0.74, updatedAt: new Date().toISOString() },
   { id: "guest-b", label: "Guest B", role: "guest", bleNodeId: "room-202", confidence: 0.68, updatedAt: new Date().toISOString() },
-  { id: "staff-1", label: "Night Clerk", role: "staff", bleNodeId: "junction-main", confidence: 0.9, updatedAt: new Date().toISOString() }
+  { id: "staff-1", label: "Night Staff", role: "staff", bleNodeId: "junction-main", confidence: 0.9, updatedAt: new Date().toISOString() }
 ];
 
 export function createSampleState(): AppState {

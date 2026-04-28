@@ -368,8 +368,7 @@ export function AssistantMapPage() {
       <div className="assistant-panel assistant-chat">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Gemini + Google Maps</p>
-            <h2>SafePath Assistant</h2>
+            <h2>ResQ Assistant</h2>
           </div>
           <Bot size={24} />
         </div>
@@ -511,7 +510,7 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
   }
 
   googleMapsLoader = new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>("script[data-safepath-google-maps]");
+    const existing = document.querySelector<HTMLScriptElement>("script[data-resq-google-maps]");
     if (existing) {
       existing.addEventListener("load", () => resolve(), { once: true });
       existing.addEventListener("error", () => reject(new Error("Google Maps failed to load.")), { once: true });
@@ -522,7 +521,7 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
     script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places`;
     script.async = true;
     script.defer = true;
-    script.dataset.safepathGoogleMaps = "true";
+    script.dataset.resqGoogleMaps = "true";
     script.onload = () => resolve();
     script.onerror = () => reject(new Error("Google Maps failed to load."));
     document.head.appendChild(script);
