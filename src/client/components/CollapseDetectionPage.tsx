@@ -157,7 +157,7 @@ export function CollapseDetectionPage({
       const msg = error instanceof Error ? error.message : "Could not load FallSafe ONNX model.";
       setModelStatus(`Model failed to load: ${msg}`);
       setModelPickerResult("error");
-      setModelPickerMessage("Model did not load. Check your connection or try uploading the file manually.");
+      setModelPickerMessage(`Model did not load: ${msg}`);
       if (!andStart) setLocalError(msg);
     }
   }

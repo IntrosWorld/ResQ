@@ -40,9 +40,10 @@ export default function SecurityDashboard() {
       setDownloadPercent(null); setModelName('COCO Person YOLO (HuggingFace)');
       setModelPickerResult('success'); setModelPickerMessage('Model loaded successfully.');
       setTimeout(() => setShowModelPicker(false), 1200);
-    } catch {
+    } catch (err) {
       setDownloadPercent(null);
-      setModelPickerResult('error'); setModelPickerMessage('Model did not load. Check connection or upload manually.');
+      const detail = err instanceof Error ? err.message : String(err);
+      setModelPickerResult('error'); setModelPickerMessage(`Model did not load: ${detail}`);
     }
   }
 
@@ -54,9 +55,10 @@ export default function SecurityDashboard() {
       setDownloadPercent(null); setModelName(file.name);
       setModelPickerResult('success'); setModelPickerMessage('Model loaded successfully.');
       setTimeout(() => setShowModelPicker(false), 1200);
-    } catch {
+    } catch (err) {
       setDownloadPercent(null);
-      setModelPickerResult('error'); setModelPickerMessage('Model did not load. Use a valid YOLO ONNX file.');
+      const detail = err instanceof Error ? err.message : String(err);
+      setModelPickerResult('error'); setModelPickerMessage(`Model did not load: ${detail}`);
     }
   }
 

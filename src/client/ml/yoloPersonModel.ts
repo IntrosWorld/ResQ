@@ -111,7 +111,8 @@ export async function loadYoloPersonModel(modelFile: File): Promise<void> {
 export async function loadYoloPersonModelFromUrl(url: string, onProgress?: (percent: number) => void): Promise<void> {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Failed to fetch COCO person ONNX model (HTTP ${response.status}).`);
+    const body = await response.text().catch(() => "");
+    throw new Error(`Failed to fetch COCO person ONNX model (HTTP ${response.status})${body ? `: ${body}` : ""}`);
   }
   const buffer = await readResponseWithProgress(response, onProgress);
   await loadYoloPersonModelBuffer(buffer);

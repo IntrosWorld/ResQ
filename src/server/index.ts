@@ -3,7 +3,6 @@ import express from "express";
 import multer from "multer";
 import { access, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import twilio from "twilio";
 import { ZodError } from "zod";
 import { generateAutoCameraNodes } from "../shared/autoDevices";
@@ -13,8 +12,9 @@ import { importFloorMap } from "./cad/importer";
 import { store } from "./store";
 import { edgePatchSchema, edgeSchema, hazardSchema, nodePatchSchema, nodeSchema, personPatchSchema, personSchema, routeSchema } from "./validation";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, "../..");
+// process.cwd() is the project root on both local (F:/programming/ResQ) and
+// Vercel (/var/task). Avoids import.meta.url which breaks esbuild bundling.
+const rootDir = process.cwd();
 const MODEL_FILES = {
   fireSmoke: "resq-fire-smoke-yolo.onnx",
   fallsafeCollapse: "resq-fallsafe-collapse.onnx",
@@ -513,30 +513,44 @@ function getRemoteModelUrl(fileName: string): string {
 }
 
 async function sendLocalOrRemoteModel(res: express.Response, localPath: string, fileName: string): Promise<void> {
+  console.log(`[model-proxy] request for ${fileName}`);
+
   if (await fileExists(localPath)) {
+    console.log(`[model-proxy] serving local file: ${localPath}`);
     res.sendFile(localPath);
     return;
   }
 
-  // Proxy from HuggingFace server-side so the browser never hits a cross-origin
-  // redirect — that breaks CORS on Vercel and other deployed environments.
   const remoteUrl = getRemoteModelUrl(fileName);
+  console.log(`[model-proxy] no local file — proxying from: ${remoteUrl}`);
+
   try {
+    console.log(`[model-proxy] starting fetch from HuggingFace…`);
     const upstream = await fetch(remoteUrl);
+    console.log(`[model-proxy] HuggingFace responded: HTTP ${upstream.status} ${upstream.statusText}`);
+    console.log(`[model-proxy] response headers:`, Object.fromEntries(upstream.headers.entries()));
+
     if (!upstream.ok) {
+      console.error(`[model-proxy] upstream error ${upstream.status} for ${fileName}`);
       res.status(502).json({ error: `HuggingFace returned HTTP ${upstream.status} for ${fileName}` });
       return;
     }
-    // Buffer the whole model — simpler and avoids Node.js stream API incompatibilities.
-    // Models are 10–120 MB; server-to-server download is fast (typically < 5 s).
+
+    console.log(`[model-proxy] buffering response body…`);
     const buf = Buffer.from(await upstream.arrayBuffer());
+    console.log(`[model-proxy] buffered ${buf.length} bytes for ${fileName}`);
+
     res.setHeader("Content-Type", "application/octet-stream");
     res.setHeader("Content-Length", String(buf.length));
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Cache-Control", "public, max-age=86400");
     res.send(buf);
+    console.log(`[model-proxy] sent ${fileName} successfully`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : "";
+    console.error(`[model-proxy] FAILED for ${fileName}:`, msg);
+    console.error(`[model-proxy] stack:`, stack);
     res.status(502).json({ error: `Proxy failed for ${fileName}: ${msg}` });
   }
 }
