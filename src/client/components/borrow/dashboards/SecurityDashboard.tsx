@@ -8,7 +8,7 @@ import { hasLoadedYoloPersonModel, loadYoloPersonModel, loadYoloPersonModelFromU
 import type { PersonDetectionResult } from '../../../ml/yoloPersonModel';
 import { TwilioAlertSetup, loadAlertConfig, type AlertConfig } from '../../TwilioAlertSetup';
 
-const REMOTE_MODEL_URL = 'https://huggingface.co/Snaptrope/resq/resolve/main/resq-person-coco.onnx';
+const REMOTE_MODEL_URL = '/api/models/person-coco/model.onnx';
 
 export default function SecurityDashboard() {
   const videoRef = useRef<HTMLVideoElement>(null);

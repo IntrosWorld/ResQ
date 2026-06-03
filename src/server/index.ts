@@ -518,7 +518,35 @@ async function sendLocalOrRemoteModel(res: express.Response, localPath: string, 
     return;
   }
 
-  res.redirect(302, getRemoteModelUrl(fileName));
+  // Proxy from HuggingFace server-side so the browser never hits a cross-origin
+  // redirect — that redirect breaks CORS on deployed environments like Vercel.
+  const remoteUrl = getRemoteModelUrl(fileName);
+  try {
+    const upstream = await fetch(remoteUrl, { redirect: "follow" });
+    if (!upstream.ok) {
+      res.status(502).json({ error: `HuggingFace returned HTTP ${upstream.status} for ${fileName}` });
+      return;
+    }
+
+    res.setHeader("Content-Type", upstream.headers.get("content-type") ?? "application/octet-stream");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "public, max-age=86400"); // cache 24 h in CDN/browser
+
+    const contentLength = upstream.headers.get("content-length");
+    if (contentLength) res.setHeader("Content-Length", contentLength);
+
+    if (upstream.body) {
+      const { Readable } = await import("node:stream");
+      // web ReadableStream → Node.js Readable → Express response
+      Readable.fromWeb(upstream.body as import("stream/web").ReadableStream).pipe(res);
+    } else {
+      const buf = await upstream.arrayBuffer();
+      res.send(Buffer.from(buf));
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(502).json({ error: `Failed to proxy ${fileName} from HuggingFace: ${msg}` });
+  }
 }
 
 function fallbackAssistantReply(message: string, mapAction?: AssistantMapAction): string {

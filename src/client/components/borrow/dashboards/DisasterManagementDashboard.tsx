@@ -11,7 +11,7 @@ import { hasLoadedYoloCollapseModel, loadYoloCollapseModel, loadYoloCollapseMode
 import type { CctvDetectionResult } from '../../../../shared/cctvDetection';
 import { TwilioAlertSetup, loadAlertConfig, type AlertConfig } from '../../TwilioAlertSetup';
 
-const REMOTE_MODEL_URL = 'https://huggingface.co/Snaptrope/resq/resolve/main/resq-fallsafe-collapse.onnx';
+const REMOTE_MODEL_URL = '/api/models/fallsafe/model.onnx';
 
 export default function DisasterManagementDashboard() {
   const videoRef = useRef<HTMLVideoElement>(null);

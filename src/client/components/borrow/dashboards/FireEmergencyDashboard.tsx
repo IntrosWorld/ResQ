@@ -10,7 +10,7 @@ import { hasLoadedYoloHazardModel, loadYoloHazardModel, loadYoloHazardModelFromU
 import type { CctvDetectionResult } from '../../../../shared/cctvDetection';
 import { TwilioAlertSetup, loadAlertConfig, type AlertConfig } from '../../TwilioAlertSetup';
 
-const REMOTE_MODEL_URL = 'https://huggingface.co/Snaptrope/resq/resolve/main/resq-fire-smoke-yolo.onnx';
+const REMOTE_MODEL_URL = '/api/models/local-yolo/model.onnx';
 
 export default function FireEmergencyDashboard() {
   const videoRef = useRef<HTMLVideoElement>(null);

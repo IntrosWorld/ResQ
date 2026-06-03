@@ -139,9 +139,9 @@ export function CollapseDetectionPage({
     setDownloadPercent(0);
     setModelStatus("Downloading FallSafe ONNX model from Hugging Face...");
     try {
-      const modelUrl = localModelStatus?.hasOnnx
-        ? "/api/models/fallsafe/model.onnx"
-        : (localModelStatus?.remoteOnnxUrl ?? "/api/models/fallsafe/model.onnx");
+      // Always go through our API proxy — direct HuggingFace URLs hit CORS issues
+      // on deployed environments. The proxy fetches server-side and streams back.
+      const modelUrl = "/api/models/fallsafe/model.onnx";
       await loadYoloCollapseModelFromUrl(modelUrl, (pct) => {
         setDownloadPercent(pct);
         setModelPickerMessage(pct < 100 ? `Downloading model… ${pct}%` : "Compiling ONNX model, please wait…");
