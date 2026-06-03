@@ -16,6 +16,7 @@ import {
   getLocalFallSafeModelStatus,
   getLocalCocoPersonModelStatus,
   resetFloorMap,
+  sendAlertNotification,
   updateEdge,
   updateNode,
   updatePerson,
@@ -28,6 +29,7 @@ import { CctvSimulationPage } from "./client/components/CctvSimulationPage";
 import { CollapseDetectionPage } from "./client/components/CollapseDetectionPage";
 import { Layout } from "./client/components/Layout";
 import { NotificationCenter } from "./client/components/NotificationCenter";
+import { TwilioAlertSetup, loadAlertConfig, type AlertConfig } from "./client/components/TwilioAlertSetup";
 import { RestrictedAreaPage } from "./client/components/RestrictedAreaPage";
 import { UserDashboard } from "./client/components/UserDashboard";
 import { BorrowHomePage } from "./client/components/BorrowHomePage";
@@ -76,6 +78,8 @@ export default function App() {
   const [cocoPersonModelStatus, setCocoPersonModelStatus] = useState<LocalModelStatus | undefined>();
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(() => loadAlertConfig());
+  const [alertSetupOpen, setAlertSetupOpen] = useState(false);
   const [path, setPath] = useState(() => window.location.pathname);
 
   useEffect(() => {
@@ -263,6 +267,20 @@ export default function App() {
         title: hazard.type === "structural" ? "Collapse Emergency Detected" : "CCTV Hazard Detected",
         message: hazard.label
       });
+      // Send Twilio SMS / WhatsApp alert if configured
+      const cfg = loadAlertConfig();
+      if (cfg?.enabled && cfg.phone) {
+        try {
+          await sendAlertNotification({
+            to: cfg.phone,
+            channel: cfg.channel,
+            hazardType: hazard.type,
+            location: hazard.label
+          });
+        } catch {
+          // Silently ignore — alert still shows in-app
+        }
+      }
     });
   }
 
@@ -494,6 +512,14 @@ export default function App() {
         onClose={() => setNotificationsOpen(false)}
         onDismiss={dismissNotification}
         onClear={() => setNotifications([])}
+        alertConfig={alertConfig}
+        onAlertSetup={() => { setNotificationsOpen(false); setAlertSetupOpen(true); }}
+      />
+      <TwilioAlertSetup
+        open={alertSetupOpen}
+        onClose={() => setAlertSetupOpen(false)}
+        onSave={(cfg) => setAlertConfig(cfg)}
+        current={alertConfig}
       />
     </div>
   );

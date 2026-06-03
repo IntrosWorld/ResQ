@@ -1,5 +1,6 @@
-import { Bell, Check, Flame, ShieldAlert, UserSearch, X } from "lucide-react";
+import { Bell, Check, Flame, PhoneCall, ShieldAlert, UserSearch, X } from "lucide-react";
 import type { SystemNotification } from "../../shared/types";
+import type { AlertConfig } from "./TwilioAlertSetup";
 
 interface NotificationCenterProps {
   notifications: SystemNotification[];
@@ -7,9 +8,11 @@ interface NotificationCenterProps {
   onClose: () => void;
   onDismiss: (id: string) => void;
   onClear: () => void;
+  alertConfig: AlertConfig | null;
+  onAlertSetup: () => void;
 }
 
-export function NotificationCenter({ notifications, open, onClose, onDismiss, onClear }: NotificationCenterProps) {
+export function NotificationCenter({ notifications, open, onClose, onDismiss, onClear, alertConfig, onAlertSetup }: NotificationCenterProps) {
   const latestToast = notifications.find((notification) => !notification.read);
 
   return (
@@ -38,6 +41,19 @@ export function NotificationCenter({ notifications, open, onClose, onDismiss, on
               <X size={16} />
             </button>
           </div>
+          {/* Twilio alert setup strip */}
+          <button type="button" className="alert-setup-strip" onClick={onAlertSetup}>
+            <PhoneCall size={15} />
+            <span>
+              {alertConfig?.enabled
+                ? `SMS/WhatsApp alerts on · ${alertConfig.channel.toUpperCase()} → ${alertConfig.phone}`
+                : "Set up SMS / WhatsApp hazard alerts"}
+            </span>
+            <span className={`alert-setup-strip__badge ${alertConfig?.enabled ? "alert-setup-strip__badge--on" : ""}`}>
+              {alertConfig?.enabled ? "ON" : "OFF"}
+            </span>
+          </button>
+
           <div className="notification-list">
             {notifications.length > 0 ? (
               notifications.map((notification) => (

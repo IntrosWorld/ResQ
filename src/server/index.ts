@@ -4,6 +4,7 @@ import multer from "multer";
 import { access, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import twilio from "twilio";
 import { ZodError } from "zod";
 import { generateAutoCameraNodes } from "../shared/autoDevices";
 import { generateAutoPathEdges } from "../shared/autoPaths";
@@ -424,6 +425,53 @@ app.post("/api/assistant/chat", async (req, res, next) => {
     res.json({ reply: reply || fallbackAssistantReply(lastUserMessage, mapAction), configured: true, mapAction });
   } catch (error) {
     next(error);
+  }
+});
+
+// ── Twilio alert endpoint ────────────────────────────────────────
+app.post("/api/notify/send", async (req, res) => {
+  const { to, channel, hazardType, location } = req.body as {
+    to: string;
+    channel: "sms" | "whatsapp";
+    hazardType?: string;
+    location?: string;
+  };
+
+  if (!to || !channel) {
+    res.status(400).json({ error: "Missing required fields: to, channel." });
+    return;
+  }
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+  if (!accountSid || !authToken) {
+    res.status(503).json({ error: "Twilio credentials not configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN." });
+    return;
+  }
+
+  const client = twilio(accountSid, authToken);
+  const hazard = hazardType ?? "hazard";
+  const loc = location ? ` at ${location}` : "";
+  const body = `ResQ ALERT: ${hazard.charAt(0).toUpperCase() + hazard.slice(1)} detected${loc}. Please evacuate immediately and contact emergency services.`;
+
+  try {
+    if (channel === "whatsapp") {
+      const from = process.env.TWILIO_WHATSAPP_FROM ?? "whatsapp:+14155238886";
+      const toFormatted = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
+      await client.messages.create({ body, from, to: toFormatted });
+    } else {
+      const from = process.env.TWILIO_PHONE_NUMBER;
+      if (!from) {
+        res.status(503).json({ error: "Twilio phone number not configured. Set TWILIO_PHONE_NUMBER." });
+        return;
+      }
+      await client.messages.create({ body, from, to });
+    }
+    res.json({ ok: true, channel, to });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to send notification.";
+    res.status(500).json({ error: msg });
   }
 });
 

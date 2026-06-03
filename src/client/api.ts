@@ -42,6 +42,15 @@ export async function getLocalCocoPersonModelStatus(): Promise<LocalModelStatus>
   return fetchJson("/api/models/person-coco/status");
 }
 
+export async function sendAlertNotification(payload: {
+  to: string;
+  channel: "sms" | "whatsapp";
+  hazardType?: string;
+  location?: string;
+}): Promise<{ ok: boolean; channel: string; to: string }> {
+  return fetchJson("/api/notify/send", jsonRequest("POST", payload));
+}
+
 export async function uploadFloorMap(file: File): Promise<{ state: AppState }> {
   const form = new FormData();
   form.append("floorMap", file);

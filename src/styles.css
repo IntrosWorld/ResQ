@@ -3276,3 +3276,248 @@ html, body, #root {
     max-width: 100%;
   }
 }
+
+/* ── Twilio alert setup strip (inside notification drawer) ──────── */
+.alert-setup-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+  margin-bottom: 8px;
+}
+
+.alert-setup-strip:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: var(--text);
+}
+
+.alert-setup-strip span:nth-child(2) {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alert-setup-strip__badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.alert-setup-strip__badge--on {
+  background: color-mix(in srgb, #10b981 20%, transparent);
+  color: #10b981;
+}
+
+/* ── Twilio modal ───────────────────────────────────────────────── */
+.twilio-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.15s ease;
+}
+
+.twilio-modal__dialog {
+  width: min(420px, 92vw);
+  background: var(--surface, #141418);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.18s ease;
+}
+
+.twilio-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.twilio-modal__header span { flex: 1; }
+
+.twilio-modal__close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+
+.twilio-modal__close:hover { color: var(--text); }
+
+.twilio-modal__body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.twilio-modal__desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.twilio-channel-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.twilio-channel-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  text-align: center;
+}
+
+.twilio-channel-btn strong { font-size: 13px; }
+.twilio-channel-btn small  { font-size: 11px; color: var(--muted); }
+
+.twilio-channel-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.twilio-channel-btn--active {
+  border-color: #10b981;
+  background: color-mix(in srgb, #10b981 12%, transparent);
+  color: #10b981;
+}
+
+.twilio-channel-btn--active small { color: color-mix(in srgb, #10b981 70%, white); }
+
+.twilio-modal__label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.twilio-modal__input {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.twilio-modal__input:focus { border-color: #10b981; }
+
+.twilio-modal__error {
+  font-size: 12px;
+  color: var(--danger, #ef4444);
+  margin: 0;
+}
+
+.twilio-modal__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.twilio-modal__next {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #10b981;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.twilio-modal__next:hover { opacity: 0.88; }
+
+.twilio-modal__back {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.twilio-modal__back:hover { color: var(--text); }
+
+.twilio-modal__disable {
+  background: none;
+  border: none;
+  color: var(--danger, #ef4444);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  padding: 0;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.twilio-modal__disable:hover { opacity: 1; }
+
+.twilio-modal__done {
+  align-items: center;
+  text-align: center;
+}
+
+.twilio-modal__done-icon {
+  font-size: 40px;
+  color: #10b981;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.twilio-modal__done strong {
+  font-size: 15px;
+  color: var(--text);
+}
+
+.twilio-modal__done code {
+  background: rgba(255,255,255,0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
