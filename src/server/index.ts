@@ -22,7 +22,9 @@ const MODEL_FILES = {
 } as const;
 const HF_MODEL_BASE_URL = (process.env.HF_MODEL_BASE_URL ?? "https://huggingface.co/Snaptrope/resq/resolve/main").replace(/\/$/, "");
 const uploadDir = process.env.VERCEL ? path.join("/tmp", "resq-uploads") : path.join(rootDir, "uploads");
-await mkdir(uploadDir, { recursive: true });
+// Fire-and-forget: top-level await breaks esbuild CJS bundling on Vercel.
+// The directory is created before any upload is ever attempted.
+void mkdir(uploadDir, { recursive: true }).catch(() => {});
 
 const app = express();
 const port = Number.parseInt(process.env.PORT ?? "4000", 10);
