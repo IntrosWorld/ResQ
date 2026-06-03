@@ -15,12 +15,45 @@ export async function loadYoloHazardModel(modelFile: File): Promise<void> {
   await loadYoloHazardModelBuffer(buffer);
 }
 
-export async function loadYoloHazardModelFromUrl(url: string): Promise<void> {
+export async function loadYoloHazardModelFromUrl(url: string, onProgress?: (percent: number) => void): Promise<void> {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error("Local ONNX model could not be loaded.");
+    throw new Error(`Failed to fetch ONNX model (HTTP ${response.status}).`);
   }
-  await loadYoloHazardModelBuffer(await response.arrayBuffer());
+  const buffer = await readResponseWithProgress(response, onProgress);
+  await loadYoloHazardModelBuffer(buffer);
+}
+
+async function readResponseWithProgress(response: Response, onProgress?: (percent: number) => void): Promise<ArrayBuffer> {
+  const contentLength = response.headers.get("content-length");
+  const total = contentLength ? parseInt(contentLength, 10) : 0;
+  if (!response.body || total === 0) {
+    // No content-length or no body stream — fall back to a single read
+    onProgress?.(50);
+    const buffer = await response.arrayBuffer();
+    onProgress?.(100);
+    return buffer;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.length;
+    onProgress?.(Math.round((received / total) * 100));
+  }
+
+  const merged = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return merged.buffer;
 }
 
 async function loadYoloHazardModelBuffer(buffer: ArrayBuffer): Promise<void> {

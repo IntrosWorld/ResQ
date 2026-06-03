@@ -2144,6 +2144,217 @@ select {
   background: color-mix(in srgb, var(--danger) 10%, transparent);
 }
 
+/* ── Model source picker modal ─────────────────────────────────── */
+.model-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.model-picker__dialog {
+  width: min(400px, 90vw);
+  background: var(--surface, #141418);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 28px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.18s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.model-picker__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.model-picker__label {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.model-picker__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.model-picker__option {
+  cursor: pointer;
+  display: block;
+}
+
+.model-picker__btn {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.model-picker__btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.model-picker__btn--remote {
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #10b981;
+}
+
+.model-picker__btn--remote:hover {
+  background: color-mix(in srgb, #10b981 10%, transparent);
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+.model-picker__divider {
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.model-picker__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.model-picker__cancel {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.15s;
+}
+
+.model-picker__cancel:hover {
+  color: var(--text);
+}
+
+.panel-load-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.secondary-action--remote {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  color: #10b981 !important;
+}
+
+.secondary-action--remote:hover {
+  background: color-mix(in srgb, #10b981 10%, transparent) !important;
+  border-color: rgba(16, 185, 129, 0.6) !important;
+}
+
+/* Loading phase */
+.model-picker__loading {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.model-picker__progress-track {
+  height: 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.model-picker__progress-bar {
+  height: 100%;
+  border-radius: 6px;
+  background: #10b981;
+  transition: width 0.3s ease;
+  min-width: 6px;
+}
+
+/* Result phase */
+.model-picker__result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.model-picker__result-icon {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.model-picker__result--success .model-picker__result-icon { color: #10b981; }
+.model-picker__result--error   .model-picker__result-icon { color: var(--danger, #ef4444); }
+
+.model-picker__result--success .model-picker__title { color: #10b981; }
+.model-picker__result--error   .model-picker__title { color: var(--danger, #ef4444); }
+
+.model-picker__result .model-picker__footer {
+  justify-content: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.model-progress {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.model-progress__bar {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: width 0.25s ease;
+  min-width: 4px;
+}
+
+.model-progress span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .secondary-action--live {
   border: 1px solid var(--line);
 }

@@ -44,12 +44,15 @@ export function CollapseDetectionPage({
   const [uploadedVideoName, setUploadedVideoName] = useState("");
   const [modelName, setModelName] = useState("");
   const [modelStatus, setModelStatus] = useState("No FallSafe ONNX model loaded.");
+  const [downloadPercent, setDownloadPercent] = useState<number | null>(null);
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [modelPickerResult, setModelPickerResult] = useState<"success" | "error" | null>(null);
+  const [modelPickerMessage, setModelPickerMessage] = useState("");
   const [localError, setLocalError] = useState("");
   const [monitoring, setMonitoring] = useState(false);
   const [frameCount, setFrameCount] = useState(0);
   const [alertTriggered, setAlertTriggered] = useState(false);
   const [lastResult, setLastResult] = useState<CctvDetectionResult | undefined>();
-  const autoLoadAttemptedRef = useRef(false);
   const inferenceRunningRef = useRef(false);
   const videoFrameCallbackRef = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -68,14 +71,6 @@ export function CollapseDetectionPage({
     [detectedLocation?.label, frameCount, modelName, selectedCamera?.label, uploadedVideoName]
   );
 
-  useEffect(() => {
-    if (!hasModelSource || hasLoadedYoloCollapseModel() || autoLoadAttemptedRef.current) {
-      return;
-    }
-
-    autoLoadAttemptedRef.current = true;
-    void handleLoadLocalOnnx();
-  }, [hasModelSource]);
 
   useEffect(() => {
     if (!monitoring) {
@@ -114,30 +109,68 @@ export function CollapseDetectionPage({
     }
   }, [detectedLocation?.id, selectedNodeId, onSelectNode]);
 
-  async function handleModelUpload(file: File) {
+  async function handleModelUpload(file: File, andStart = false) {
     setLocalError("");
-    setModelStatus("Loading FallSafe ONNX model...");
+    setModelPickerResult(null);
+    setModelPickerMessage("Reading model file…");
+    setDownloadPercent(50);
     try {
       await loadYoloCollapseModel(file);
+      setDownloadPercent(null);
       setModelName(file.name);
-      setModelStatus("FallSafe ONNX loaded. Uploaded video detection will use browser inference.");
+      setModelStatus("FallSafe ONNX loaded.");
+      setModelPickerResult("success");
+      setModelPickerMessage("Model loaded successfully.");
+      if (andStart) setTimeout(() => { setShowModelPicker(false); void beginDetectionAfterLoad(); }, 1200);
     } catch (error) {
-      setModelStatus("FallSafe model failed to load.");
-      setLocalError(error instanceof Error ? error.message : "Could not load FallSafe ONNX model.");
+      setDownloadPercent(null);
+      const msg = error instanceof Error ? error.message : "Could not load FallSafe ONNX model.";
+      setModelStatus(`Model failed to load: ${msg}`);
+      setModelPickerResult("error");
+      setModelPickerMessage("Model did not load. Please try again or use a different file.");
+      if (!andStart) setLocalError(msg);
     }
   }
 
-  async function handleLoadLocalOnnx() {
+  async function handleLoadLocalOnnx(andStart = false) {
     setLocalError("");
-    setModelStatus("Loading local FallSafe ONNX model...");
+    setModelPickerResult(null);
+    setModelPickerMessage("");
+    setDownloadPercent(0);
+    setModelStatus("Downloading FallSafe ONNX model from Hugging Face...");
     try {
-      await loadYoloCollapseModelFromUrl("/api/models/fallsafe/model.onnx");
-      setModelName(localModelStatus?.hasOnnx ? "fallsafe_model_bin/resq-fallsafe-collapse.onnx" : localModelStatus?.remoteOnnxUrl ?? "Hugging Face FallSafe ONNX");
-      setModelStatus("FallSafe ONNX loaded. Uploaded video detection will use browser inference.");
+      const modelUrl = localModelStatus?.hasOnnx
+        ? "/api/models/fallsafe/model.onnx"
+        : (localModelStatus?.remoteOnnxUrl ?? "/api/models/fallsafe/model.onnx");
+      await loadYoloCollapseModelFromUrl(modelUrl, (pct) => {
+        setDownloadPercent(pct);
+        setModelPickerMessage(pct < 100 ? `Downloading model… ${pct}%` : "Compiling ONNX model, please wait…");
+      });
+      setDownloadPercent(null);
+      setModelName(localModelStatus?.hasOnnx ? "fallsafe_model_bin/resq-fallsafe-collapse.onnx" : "Hugging Face FallSafe ONNX");
+      setModelStatus("FallSafe ONNX loaded.");
+      setModelPickerResult("success");
+      setModelPickerMessage("Model loaded successfully.");
+      if (andStart) setTimeout(() => { setShowModelPicker(false); void beginDetectionAfterLoad(); }, 1200);
     } catch (error) {
-      setModelStatus("Local FallSafe model failed to load.");
-      setLocalError(error instanceof Error ? error.message : "Could not load fallsafe_model_bin/resq-fallsafe-collapse.onnx.");
+      setDownloadPercent(null);
+      const msg = error instanceof Error ? error.message : "Could not load FallSafe ONNX model.";
+      setModelStatus(`Model failed to load: ${msg}`);
+      setModelPickerResult("error");
+      setModelPickerMessage("Model did not load. Check your connection or try uploading the file manually.");
+      if (!andStart) setLocalError(msg);
     }
+  }
+
+  async function beginDetectionAfterLoad() {
+    if (!videoRef.current) return;
+    setAlertTriggered(false);
+    setMonitoring(true);
+    await videoRef.current.play().catch(() => {
+      setMonitoring(false);
+      setLocalError("The browser blocked video playback. Press play on the video, then start detection again.");
+    });
+    void runDetection();
   }
 
   function handleVideoUpload(file: File) {
@@ -160,22 +193,11 @@ export function CollapseDetectionPage({
 
     setLocalError("");
     if (!hasLoadedYoloCollapseModel()) {
-      await handleLoadLocalOnnx();
-    }
-
-    if (!hasLoadedYoloCollapseModel()) {
-      setLocalError("Local FallSafe ONNX could not be loaded. Export model/model.pt to fallsafe_model_bin/resq-fallsafe-collapse.onnx.");
+      setShowModelPicker(true);
       return;
     }
 
-    setAlertTriggered(false);
-    setMonitoring(true);
-    await videoRef.current.play().catch(() => {
-      setMonitoring(false);
-      setLocalError("The browser blocked video playback. Press play on the video, then start detection again.");
-    });
-
-    void runDetection();
+    void beginDetectionAfterLoad();
   }
 
   async function runDetection() {
@@ -296,27 +318,92 @@ export function CollapseDetectionPage({
                 <ScanEye size={18} />
                 FallSafe model
               </h3>
-              <label className="file-drop file-drop--compact">
-                <input
-                  type="file"
-                  accept=".onnx,application/octet-stream"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void handleModelUpload(file);
-                  }}
-                />
-                <span>Upload FallSafe YOLO11 ONNX</span>
-                <small>{modelName || "Export FallSafe model/model.pt to ONNX"}</small>
-              </label>
-              {hasModelSource ? (
-                <button className="secondary-action" onClick={() => void handleLoadLocalOnnx()}>
+
+              {showModelPicker ? (
+                <div className="model-picker" onClick={(e) => { if (e.target === e.currentTarget && !downloadPercent) setShowModelPicker(false); }}>
+                  <div className="model-picker__dialog">
+                    {modelPickerResult === null && downloadPercent === null ? (
+                      <>
+                        <p className="model-picker__title">Select model source</p>
+                        <p className="model-picker__label">No ONNX model is loaded. Choose how to load it before starting detection.</p>
+                        <div className="model-picker__options">
+                          <label className="model-picker__option">
+                            <input
+                              type="file"
+                              accept=".onnx,application/octet-stream"
+                              style={{ display: "none" }}
+                              onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                if (file) void handleModelUpload(file, true);
+                              }}
+                            />
+                            <span className="model-picker__btn">Upload local .onnx file</span>
+                          </label>
+                          <span className="model-picker__divider">or</span>
+                          <button className="model-picker__btn model-picker__btn--remote" onClick={() => void handleLoadLocalOnnx(true)}>
+                            Load from Hugging Face (remote)
+                          </button>
+                        </div>
+                        <div className="model-picker__footer">
+                          <button className="model-picker__cancel" onClick={() => setShowModelPicker(false)}>Cancel</button>
+                        </div>
+                      </>
+                    ) : null}
+                    {downloadPercent !== null ? (
+                      <div className="model-picker__loading">
+                        <p className="model-picker__title">Loading model…</p>
+                        <div className="model-picker__progress-track">
+                          <div className="model-picker__progress-bar" style={{ width: `${downloadPercent}%` }} />
+                        </div>
+                        <p className="model-picker__label">{modelPickerMessage || `Downloading… ${downloadPercent}%`}</p>
+                      </div>
+                    ) : null}
+                    {modelPickerResult !== null && downloadPercent === null ? (
+                      <div className={`model-picker__result model-picker__result--${modelPickerResult}`}>
+                        <span className="model-picker__result-icon">{modelPickerResult === "success" ? "✓" : "✕"}</span>
+                        <p className="model-picker__title">{modelPickerResult === "success" ? "Model loaded successfully" : "Model did not load"}</p>
+                        <p className="model-picker__label">{modelPickerMessage}</p>
+                        <div className="model-picker__footer">
+                          {modelPickerResult === "error" ? (
+                            <button className="model-picker__btn model-picker__btn--remote" style={{ width: "auto", padding: "8px 16px" }}
+                              onClick={() => { setModelPickerResult(null); setModelPickerMessage(""); }}>
+                              Try again
+                            </button>
+                          ) : null}
+                          <button className="model-picker__cancel" onClick={() => { setShowModelPicker(false); setModelPickerResult(null); }}>
+                            {modelPickerResult === "success" ? "Close" : "Cancel"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {!showModelPicker ? (
+                <label className="file-drop file-drop--compact">
+                  <input
+                    type="file"
+                    accept=".onnx,application/octet-stream"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void handleModelUpload(file);
+                    }}
+                  />
+                  <span>Upload FallSafe YOLO11 ONNX</span>
+                  <small>{modelName || "Export FallSafe model/model.pt to ONNX"}</small>
+                </label>
+              ) : null}
+
+              {!showModelPicker ? (
+                <button className="secondary-action" onClick={() => { setModelPickerResult(null); setModelPickerMessage(""); setShowModelPicker(true); }}>
                   Load FallSafe ONNX
                 </button>
               ) : null}
               <div className="info-list">
                 <span>Source model: FallSafe/FallSafe-yolo11, trained with `fall` and `nofall` labels.</span>
-                {localModelStatus ? <span>{localModelStatus.message}</span> : null}
-                <span>{modelStatus}</span>
+                {localModelStatus && downloadPercent === null ? <span>{localModelStatus.message}</span> : null}
+                {downloadPercent === null ? <span>{modelStatus}</span> : null}
               </div>
             </section>
 

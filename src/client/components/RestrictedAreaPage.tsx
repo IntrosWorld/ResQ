@@ -41,12 +41,15 @@ export function RestrictedAreaPage({
   const [uploadedVideoName, setUploadedVideoName] = useState("");
   const [modelName, setModelName] = useState("");
   const [modelStatus, setModelStatus] = useState("No COCO person ONNX model loaded.");
+  const [downloadPercent, setDownloadPercent] = useState<number | null>(null);
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [modelPickerResult, setModelPickerResult] = useState<"success" | "error" | null>(null);
+  const [modelPickerMessage, setModelPickerMessage] = useState("");
   const [localError, setLocalError] = useState("");
   const [monitoring, setMonitoring] = useState(false);
   const [frameCount, setFrameCount] = useState(0);
   const [alertTriggered, setAlertTriggered] = useState(false);
   const [lastResult, setLastResult] = useState<PersonDetectionResult | undefined>();
-  const autoLoadAttemptedRef = useRef(false);
   const inferenceRunningRef = useRef(false);
   const videoFrameCallbackRef = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -67,14 +70,6 @@ export function RestrictedAreaPage({
     [frameCount, modelName, outsideAllowedTime, restrictedNode?.label, selectedCamera?.label, uploadedVideoName]
   );
 
-  useEffect(() => {
-    if (!hasModelSource || hasLoadedYoloPersonModel() || autoLoadAttemptedRef.current) {
-      return;
-    }
-
-    autoLoadAttemptedRef.current = true;
-    void handleLoadLocalOnnx();
-  }, [hasModelSource]);
 
   useEffect(() => {
     if (restrictedNode && restrictedNode.id !== selectedNodeId) {
@@ -113,30 +108,68 @@ export function RestrictedAreaPage({
     return () => window.clearInterval(interval);
   }, [monitoring, uploadedVideoUrl, restrictedNode?.id, outsideAllowedTime, alertTriggered]);
 
-  async function handleModelUpload(file: File) {
+  async function handleModelUpload(file: File, andStart = false) {
     setLocalError("");
-    setModelStatus("Loading COCO person ONNX model...");
+    setModelPickerResult(null);
+    setModelPickerMessage("Reading model file…");
+    setDownloadPercent(50);
     try {
       await loadYoloPersonModel(file);
+      setDownloadPercent(null);
       setModelName(file.name);
-      setModelStatus("COCO person ONNX loaded. Uploaded video detection will use browser inference.");
+      setModelStatus("COCO person ONNX loaded.");
+      setModelPickerResult("success");
+      setModelPickerMessage("Model loaded successfully.");
+      if (andStart) setTimeout(() => { setShowModelPicker(false); void beginDetectionAfterLoad(); }, 1200);
     } catch (error) {
-      setModelStatus("COCO person model failed to load.");
-      setLocalError(error instanceof Error ? error.message : "Could not load COCO person ONNX model.");
+      setDownloadPercent(null);
+      const msg = error instanceof Error ? error.message : "Could not load COCO person ONNX model.";
+      setModelStatus(`Model failed to load: ${msg}`);
+      setModelPickerResult("error");
+      setModelPickerMessage("Model did not load. Please try again or use a different file.");
+      if (!andStart) setLocalError(msg);
     }
   }
 
-  async function handleLoadLocalOnnx() {
+  async function handleLoadLocalOnnx(andStart = false) {
     setLocalError("");
-    setModelStatus("Loading local COCO person ONNX model...");
+    setModelPickerResult(null);
+    setModelPickerMessage("");
+    setDownloadPercent(0);
+    setModelStatus("Downloading COCO person ONNX model from Hugging Face...");
     try {
-      await loadYoloPersonModelFromUrl("/api/models/person-coco/model.onnx");
-      setModelName(localModelStatus?.hasOnnx ? "person_model_bin/resq-person-coco.onnx" : localModelStatus?.remoteOnnxUrl ?? "Hugging Face COCO person ONNX");
-      setModelStatus("COCO person ONNX loaded. Uploaded video detection will use browser inference.");
+      const modelUrl = localModelStatus?.hasOnnx
+        ? "/api/models/person-coco/model.onnx"
+        : (localModelStatus?.remoteOnnxUrl ?? "/api/models/person-coco/model.onnx");
+      await loadYoloPersonModelFromUrl(modelUrl, (pct) => {
+        setDownloadPercent(pct);
+        setModelPickerMessage(pct < 100 ? `Downloading model… ${pct}%` : "Compiling ONNX model, please wait…");
+      });
+      setDownloadPercent(null);
+      setModelName(localModelStatus?.hasOnnx ? "person_model_bin/resq-person-coco.onnx" : "Hugging Face COCO person ONNX");
+      setModelStatus("COCO person ONNX loaded.");
+      setModelPickerResult("success");
+      setModelPickerMessage("Model loaded successfully.");
+      if (andStart) setTimeout(() => { setShowModelPicker(false); void beginDetectionAfterLoad(); }, 1200);
     } catch (error) {
-      setModelStatus("Local COCO person model failed to load.");
-      setLocalError(error instanceof Error ? error.message : "Could not load person_model_bin/resq-person-coco.onnx.");
+      setDownloadPercent(null);
+      const msg = error instanceof Error ? error.message : "Could not load COCO person ONNX model.";
+      setModelStatus(`Model failed to load: ${msg}`);
+      setModelPickerResult("error");
+      setModelPickerMessage("Model did not load. Check your connection or try uploading the file manually.");
+      if (!andStart) setLocalError(msg);
     }
+  }
+
+  async function beginDetectionAfterLoad() {
+    if (!videoRef.current) return;
+    setAlertTriggered(false);
+    setMonitoring(true);
+    await videoRef.current.play().catch(() => {
+      setMonitoring(false);
+      setLocalError("The browser blocked video playback. Press play on the video, then start detection again.");
+    });
+    void runDetection();
   }
 
   function handleVideoUpload(file: File) {
@@ -159,22 +192,11 @@ export function RestrictedAreaPage({
 
     setLocalError("");
     if (!hasLoadedYoloPersonModel()) {
-      await handleLoadLocalOnnx();
-    }
-
-    if (!hasLoadedYoloPersonModel()) {
-      setLocalError("Local COCO person ONNX could not be loaded. Export YOLO11n or YOLOv8n to person_model_bin/resq-person-coco.onnx.");
+      setShowModelPicker(true);
       return;
     }
 
-    setAlertTriggered(false);
-    setMonitoring(true);
-    await videoRef.current.play().catch(() => {
-      setMonitoring(false);
-      setLocalError("The browser blocked video playback. Press play on the video, then start detection again.");
-    });
-
-    void runDetection();
+    void beginDetectionAfterLoad();
   }
 
   async function runDetection() {
@@ -292,27 +314,97 @@ export function RestrictedAreaPage({
                 <ScanEye size={18} />
                 COCO person model
               </h3>
-              <label className="file-drop file-drop--compact">
-                <input
-                  type="file"
-                  accept=".onnx,application/octet-stream"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void handleModelUpload(file);
-                  }}
-                />
-                <span>Upload YOLO COCO ONNX</span>
-                <small>{modelName || "Use YOLO11n or YOLOv8n pretrained on COCO"}</small>
-              </label>
-              {hasModelSource ? (
-                <button className="secondary-action" onClick={() => void handleLoadLocalOnnx()}>
-                  Load COCO person ONNX
-                </button>
+
+              {showModelPicker ? (
+                <div className="model-picker" onClick={(e) => { if (e.target === e.currentTarget && !downloadPercent) setShowModelPicker(false); }}>
+                  <div className="model-picker__dialog">
+                    {modelPickerResult === null && downloadPercent === null ? (
+                      <>
+                        <p className="model-picker__title">Select model source</p>
+                        <p className="model-picker__label">No ONNX model is loaded. Choose how to load it before starting detection.</p>
+                        <div className="model-picker__options">
+                          <label className="model-picker__option">
+                            <input
+                              type="file"
+                              accept=".onnx,application/octet-stream"
+                              style={{ display: "none" }}
+                              onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                if (file) void handleModelUpload(file, true);
+                              }}
+                            />
+                            <span className="model-picker__btn">Upload local .onnx file</span>
+                          </label>
+                          <span className="model-picker__divider">or</span>
+                          <button className="model-picker__btn model-picker__btn--remote" onClick={() => void handleLoadLocalOnnx(true)}>
+                            Load from Hugging Face (remote)
+                          </button>
+                        </div>
+                        <div className="model-picker__footer">
+                          <button className="model-picker__cancel" onClick={() => setShowModelPicker(false)}>Cancel</button>
+                        </div>
+                      </>
+                    ) : null}
+                    {downloadPercent !== null ? (
+                      <div className="model-picker__loading">
+                        <p className="model-picker__title">Loading model…</p>
+                        <div className="model-picker__progress-track">
+                          <div className="model-picker__progress-bar" style={{ width: `${downloadPercent}%` }} />
+                        </div>
+                        <p className="model-picker__label">{modelPickerMessage || `Downloading… ${downloadPercent}%`}</p>
+                      </div>
+                    ) : null}
+                    {modelPickerResult !== null && downloadPercent === null ? (
+                      <div className={`model-picker__result model-picker__result--${modelPickerResult}`}>
+                        <span className="model-picker__result-icon">{modelPickerResult === "success" ? "✓" : "✕"}</span>
+                        <p className="model-picker__title">{modelPickerResult === "success" ? "Model loaded successfully" : "Model did not load"}</p>
+                        <p className="model-picker__label">{modelPickerMessage}</p>
+                        <div className="model-picker__footer">
+                          {modelPickerResult === "error" ? (
+                            <button className="model-picker__btn model-picker__btn--remote" style={{ width: "auto", padding: "8px 16px" }}
+                              onClick={() => { setModelPickerResult(null); setModelPickerMessage(""); }}>
+                              Try again
+                            </button>
+                          ) : null}
+                          <button className="model-picker__cancel" onClick={() => { setShowModelPicker(false); setModelPickerResult(null); }}>
+                            {modelPickerResult === "success" ? "Close" : "Cancel"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {!showModelPicker ? (
+                <label className="file-drop file-drop--compact">
+                  <input
+                    type="file"
+                    accept=".onnx,application/octet-stream"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void handleModelUpload(file);
+                    }}
+                  />
+                  <span>Upload YOLO COCO ONNX</span>
+                  <small>{modelName || "Use YOLO11n or YOLOv8n pretrained on COCO"}</small>
+                </label>
+              ) : null}
+
+              {!showModelPicker ? (
+                <div className="panel-load-row">
+                  <button className="secondary-action" onClick={() => { setModelPickerResult(null); setModelPickerMessage(""); setShowModelPicker(true); }}>
+                    Load COCO person ONNX
+                  </button>
+                  <button className="secondary-action secondary-action--remote" onClick={() => { setModelPickerResult(null); setModelPickerMessage(""); setShowModelPicker(true); setTimeout(() => void handleLoadLocalOnnx(false), 0); }}>
+                    Load from Hugging Face
+                  </button>
+                </div>
               ) : null}
               <div className="info-list">
                 <span>Source model: Ultralytics YOLO11n/YOLOv8n pretrained on COCO; this page filters class 0: person.</span>
-                {localModelStatus ? <span>{localModelStatus.message}</span> : null}
-                <span>{modelStatus}</span>
+                {localModelStatus && downloadPercent === null ? <span>{localModelStatus.message}</span> : null}
+                {downloadPercent === null ? <span>{modelStatus}</span> : null}
               </div>
             </section>
 
