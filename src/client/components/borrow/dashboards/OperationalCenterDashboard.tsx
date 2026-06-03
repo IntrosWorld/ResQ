@@ -1,11 +1,14 @@
-import React from 'react';
-import { 
-  Bell, User, LayoutDashboard, AlertTriangle, Map, 
+import React, { useState } from 'react';
+import {
+  Bell, User, LayoutDashboard, AlertTriangle, Map,
   BarChart, Settings, Heart, Plus, Minus, Users, Phone,
   Camera, Stethoscope, Briefcase, Activity, Target, Home
 } from 'lucide-react';
+import { TwilioAlertSetup, loadAlertConfig, type AlertConfig } from '../../TwilioAlertSetup';
 
 export default function OperationalCenterDashboard() {
+  const [alertSetupOpen, setAlertSetupOpen] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(() => loadAlertConfig());
   return (
     <div className="flex h-screen w-screen bg-[#0B0F19] font-paragraph text-slate-300 overflow-hidden selection:bg-cyan-900 selection:text-cyan-100">
       
@@ -55,8 +58,9 @@ export default function OperationalCenterDashboard() {
         {/* Top Navigation */}
         <header className="h-20 bg-[#0B0F19] border-b border-slate-800/50 flex items-center justify-end px-8 z-10 flex-shrink-0">
           <div className="flex items-center gap-6">
-            <button className="relative p-2 text-slate-400 hover:text-slate-200 transition-colors">
+            <button className="relative p-2 text-slate-400 hover:text-slate-200 transition-colors" onClick={() => setAlertSetupOpen(true)} title="Alert notifications">
               <Bell className="w-5 h-5" />
+              {alertConfig?.enabled ? <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-400 rounded-full"></span> : null}
             </button>
             <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center">
               <User className="w-4 h-4 text-slate-300" />
@@ -319,6 +323,7 @@ export default function OperationalCenterDashboard() {
         </footer>
 
       </div>
+      <TwilioAlertSetup open={alertSetupOpen} onClose={() => setAlertSetupOpen(false)} onSave={(cfg) => setAlertConfig(cfg)} current={alertConfig} />
     </div>
   );
 }

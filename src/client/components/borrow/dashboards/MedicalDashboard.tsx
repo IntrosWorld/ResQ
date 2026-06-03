@@ -1,10 +1,13 @@
-import React from 'react';
-import { 
-  Bell, User, LayoutDashboard, Users, Activity, Settings, 
+import React, { useState } from 'react';
+import {
+  Bell, User, LayoutDashboard, Users, Activity, Settings,
   Map, History, Stethoscope, AlertTriangle, Video, MapPin, Home
 } from 'lucide-react';
+import { TwilioAlertSetup, loadAlertConfig, type AlertConfig } from '../../TwilioAlertSetup';
 
 export default function MedicalDashboard() {
+  const [alertSetupOpen, setAlertSetupOpen] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(() => loadAlertConfig());
   return (
     <div className="flex h-screen w-screen bg-[#F8FAFC] font-paragraph text-slate-800 overflow-hidden">
       
@@ -88,9 +91,9 @@ export default function MedicalDashboard() {
             <button className="bg-[#B91C1C] hover:bg-[#991B1B] text-white text-[10px] font-bold px-4 py-2 rounded uppercase tracking-widest transition-colors">
               EMERGENCY
             </button>
-            <button className="relative text-slate-400 hover:text-slate-600 transition-colors">
+            <button className="relative text-slate-400 hover:text-slate-600 transition-colors" onClick={() => setAlertSetupOpen(true)} title="Alert notifications">
               <Bell className="w-5 h-5" />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+              <span className={`absolute top-0 right-0 w-2 h-2 rounded-full border border-white ${alertConfig?.enabled ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
             </button>
             <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden">
                <User className="w-5 h-5 text-slate-400" />
@@ -331,6 +334,7 @@ export default function MedicalDashboard() {
         </main>
 
       </div>
+      <TwilioAlertSetup open={alertSetupOpen} onClose={() => setAlertSetupOpen(false)} onSave={(cfg) => setAlertConfig(cfg)} current={alertConfig} />
     </div>
   );
 }

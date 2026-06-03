@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { hasLoadedYoloPersonModel, loadYoloPersonModel, loadYoloPersonModelFromUrl, runYoloPersonDetection } from '../../../ml/yoloPersonModel';
 import type { PersonDetectionResult } from '../../../ml/yoloPersonModel';
+import { TwilioAlertSetup, loadAlertConfig, type AlertConfig } from '../../TwilioAlertSetup';
 
 const REMOTE_MODEL_URL = 'https://huggingface.co/Snaptrope/resq/resolve/main/resq-person-coco.onnx';
 
@@ -19,6 +20,8 @@ export default function SecurityDashboard() {
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [detectionResult, setDetectionResult] = useState<PersonDetectionResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [alertSetupOpen, setAlertSetupOpen] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(() => loadAlertConfig());
 
   function handleVideoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;
@@ -194,8 +197,9 @@ export default function SecurityDashboard() {
              </div>
           </div>
           <div className="flex items-center gap-6">
-            <button className="relative text-slate-400 hover:text-slate-200 transition-colors">
+            <button className="relative text-slate-400 hover:text-slate-200 transition-colors" onClick={() => setAlertSetupOpen(true)} title="Alert notifications">
               <Bell className="w-5 h-5" />
+              {alertConfig?.enabled ? <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full"></span> : null}
             </button>
             <button className="relative text-slate-400 hover:text-slate-200 transition-colors">
               <AlertTriangle className="w-5 h-5" />
@@ -470,6 +474,8 @@ export default function SecurityDashboard() {
         </main>
 
       </div>
+
+      <TwilioAlertSetup open={alertSetupOpen} onClose={() => setAlertSetupOpen(false)} onSave={(cfg) => setAlertConfig(cfg)} current={alertConfig} />
 
       {/* Model picker modal */}
       {showModelPicker ? (

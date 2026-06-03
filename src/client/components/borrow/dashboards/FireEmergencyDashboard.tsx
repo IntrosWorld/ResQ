@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { hasLoadedYoloHazardModel, loadYoloHazardModel, loadYoloHazardModelFromUrl, runYoloHazardDetection } from '../../../ml/yoloHazardModel';
 import type { CctvDetectionResult } from '../../../../shared/cctvDetection';
+import { TwilioAlertSetup, loadAlertConfig, type AlertConfig } from '../../TwilioAlertSetup';
 
 const REMOTE_MODEL_URL = 'https://huggingface.co/Snaptrope/resq/resolve/main/resq-fire-smoke-yolo.onnx';
 
@@ -21,6 +22,8 @@ export default function FireEmergencyDashboard() {
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [detectionResult, setDetectionResult] = useState<CctvDetectionResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [alertSetupOpen, setAlertSetupOpen] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(() => loadAlertConfig());
 
   function handleVideoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -206,9 +209,9 @@ export default function FireEmergencyDashboard() {
             </nav>
           </div>
           <div className="flex items-center gap-6">
-            <button className="relative p-2 text-white hover:text-emerald-300 transition-colors">
+            <button className="relative p-2 text-white hover:text-emerald-300 transition-colors" onClick={() => setAlertSetupOpen(true)} title="Alert notifications">
               <Bell className="w-6 h-6" />
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#355A4F]"></span>
+              <span className={`absolute top-1 right-1 w-2.5 h-2.5 rounded-full border-2 border-[#355A4F] ${alertConfig?.enabled ? 'bg-emerald-400' : 'bg-red-500'}`}></span>
             </button>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#2A4B41] rounded-full flex items-center justify-center border-2 border-emerald-400">
@@ -569,6 +572,8 @@ export default function FireEmergencyDashboard() {
           </div>
         </main>
       </div>
+
+      <TwilioAlertSetup open={alertSetupOpen} onClose={() => setAlertSetupOpen(false)} onSave={(cfg) => setAlertConfig(cfg)} current={alertConfig} />
 
       {/* Model picker modal */}
       {showModelPicker ? (

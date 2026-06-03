@@ -1,10 +1,13 @@
-import React from 'react';
-import { 
-  Bell, User, LayoutDashboard, AlertTriangle, Map, 
+import React, { useState } from 'react';
+import {
+  Bell, User, LayoutDashboard, AlertTriangle, Map,
   Settings, Camera, Users, Target, Activity, ShieldAlert, Radio, Clock, Home
 } from 'lucide-react';
+import { TwilioAlertSetup, loadAlertConfig, type AlertConfig } from '../../TwilioAlertSetup';
 
 export default function UnifiedCommandDashboard() {
+  const [alertSetupOpen, setAlertSetupOpen] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(() => loadAlertConfig());
   return (
     <div className="flex h-screen w-screen bg-[#070B14] font-paragraph text-slate-300 overflow-hidden selection:bg-cyan-900 selection:text-cyan-100 relative">
       
@@ -72,8 +75,9 @@ export default function UnifiedCommandDashboard() {
              </div>
           </div>
           <div className="flex items-center gap-6">
-            <button className="relative text-slate-400 hover:text-slate-200 transition-colors">
+            <button className="relative text-slate-400 hover:text-slate-200 transition-colors" onClick={() => setAlertSetupOpen(true)} title="Alert notifications">
               <Bell className="w-5 h-5" />
+              {alertConfig?.enabled ? <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full"></span> : null}
             </button>
             <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center overflow-hidden">
                <img src="https://ui-avatars.com/api/?name=Commander&background=0f172a&color=fff" alt="User" />
@@ -216,6 +220,7 @@ export default function UnifiedCommandDashboard() {
         </main>
 
       </div>
+      <TwilioAlertSetup open={alertSetupOpen} onClose={() => setAlertSetupOpen(false)} onSave={(cfg) => setAlertConfig(cfg)} current={alertConfig} />
     </div>
   );
 }

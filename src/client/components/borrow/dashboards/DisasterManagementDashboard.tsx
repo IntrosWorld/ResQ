@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { hasLoadedYoloCollapseModel, loadYoloCollapseModel, loadYoloCollapseModelFromUrl, runYoloCollapseDetection } from '../../../ml/yoloCollapseModel';
 import type { CctvDetectionResult } from '../../../../shared/cctvDetection';
+import { TwilioAlertSetup, loadAlertConfig, type AlertConfig } from '../../TwilioAlertSetup';
 
 const REMOTE_MODEL_URL = 'https://huggingface.co/Snaptrope/resq/resolve/main/resq-fallsafe-collapse.onnx';
 
@@ -22,6 +23,8 @@ export default function DisasterManagementDashboard() {
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [detectionResult, setDetectionResult] = useState<CctvDetectionResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [alertSetupOpen, setAlertSetupOpen] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(() => loadAlertConfig());
 
   function handleVideoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;
@@ -206,8 +209,9 @@ export default function DisasterManagementDashboard() {
               EMERGENCY MODE ACTIVE
             </button>
             <div className="flex items-center gap-4">
-              <button className="text-gray-400 hover:text-white transition-colors">
+              <button className="relative text-gray-400 hover:text-white transition-colors" onClick={() => setAlertSetupOpen(true)} title="Alert notifications">
                 <Bell className="w-5 h-5" />
+                {alertConfig?.enabled ? <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full"></span> : null}
               </button>
               <button className="text-gray-400 hover:text-white transition-colors">
                 <Settings className="w-5 h-5" />
@@ -481,6 +485,8 @@ export default function DisasterManagementDashboard() {
         </footer>
 
       </div>
+
+      <TwilioAlertSetup open={alertSetupOpen} onClose={() => setAlertSetupOpen(false)} onSave={(cfg) => setAlertConfig(cfg)} current={alertConfig} />
 
       {/* Model picker modal */}
       {showModelPicker ? (
