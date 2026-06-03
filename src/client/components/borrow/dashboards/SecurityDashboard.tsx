@@ -1,10 +1,72 @@
-import React from 'react';
-import { 
-  Bell, User, LayoutDashboard, AlertTriangle, Map, 
-  Settings, Camera, Users, Target, Activity, ShieldAlert, CheckCircle2, ChevronRight, Home
+import React, { useRef, useState } from 'react';
+import {
+  Bell, User, LayoutDashboard, AlertTriangle, Map,
+  Settings, Camera, Users, Target, Activity, ShieldAlert, CheckCircle2, ChevronRight, Home,
+  ScanEye, Upload, Play, Loader2, Video
 } from 'lucide-react';
+import { hasLoadedYoloPersonModel, loadYoloPersonModel, loadYoloPersonModelFromUrl, runYoloPersonDetection } from '../../../ml/yoloPersonModel';
+import type { PersonDetectionResult } from '../../../ml/yoloPersonModel';
+
+const REMOTE_MODEL_URL = 'https://huggingface.co/Snaptrope/resq/resolve/main/resq-person-coco.onnx';
 
 export default function SecurityDashboard() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState('');
+  const [modelName, setModelName] = useState('');
+  const [downloadPercent, setDownloadPercent] = useState<number | null>(null);
+  const [modelPickerResult, setModelPickerResult] = useState<'success' | 'error' | null>(null);
+  const [modelPickerMessage, setModelPickerMessage] = useState('');
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [detectionResult, setDetectionResult] = useState<PersonDetectionResult | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+
+  function handleVideoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    if (uploadedVideoUrl) URL.revokeObjectURL(uploadedVideoUrl);
+    setUploadedVideoUrl(URL.createObjectURL(file));
+    setDetectionResult(null);
+  }
+
+  async function handleLoadRemote() {
+    setModelPickerResult(null); setModelPickerMessage(''); setDownloadPercent(0);
+    try {
+      await loadYoloPersonModelFromUrl(REMOTE_MODEL_URL, (pct) => {
+        setDownloadPercent(pct);
+        setModelPickerMessage(pct < 100 ? `Downloading… ${pct}%` : 'Compiling model…');
+      });
+      setDownloadPercent(null); setModelName('COCO Person YOLO (HuggingFace)');
+      setModelPickerResult('success'); setModelPickerMessage('Model loaded successfully.');
+      setTimeout(() => setShowModelPicker(false), 1200);
+    } catch {
+      setDownloadPercent(null);
+      setModelPickerResult('error'); setModelPickerMessage('Model did not load. Check connection or upload manually.');
+    }
+  }
+
+  async function handleLocalModelUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    setModelPickerResult(null); setModelPickerMessage('Reading file…'); setDownloadPercent(50);
+    try {
+      await loadYoloPersonModel(file);
+      setDownloadPercent(null); setModelName(file.name);
+      setModelPickerResult('success'); setModelPickerMessage('Model loaded successfully.');
+      setTimeout(() => setShowModelPicker(false), 1200);
+    } catch {
+      setDownloadPercent(null);
+      setModelPickerResult('error'); setModelPickerMessage('Model did not load. Use a valid YOLO ONNX file.');
+    }
+  }
+
+  async function handleRunDetection() {
+    if (!videoRef.current || !hasLoadedYoloPersonModel()) return;
+    setIsRunning(true);
+    try {
+      const result = await runYoloPersonDetection(videoRef.current);
+      setDetectionResult(result);
+    } catch { /* ignore */ }
+    setIsRunning(false);
+  }
+
   return (
     <div className="flex h-screen w-screen bg-[#070B14] font-paragraph text-slate-300 overflow-hidden selection:bg-cyan-900 selection:text-cyan-100 relative">
       
@@ -54,6 +116,52 @@ export default function SecurityDashboard() {
           </a>
         </nav>
         
+        {/* AI Model Panel */}
+        <div className="border-t border-slate-800/50 px-4 py-4">
+          <div className="text-[9px] font-bold tracking-widest text-[#38BDF8]/70 uppercase mb-3 flex items-center gap-2">
+            <ScanEye className="w-3 h-3" /> AI — Person/Intrusion
+          </div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${modelName ? 'bg-[#38BDF8]' : 'bg-slate-700'}`}></div>
+            <span className="text-[10px] text-slate-500 truncate">{modelName || 'No model loaded'}</span>
+          </div>
+          {downloadPercent !== null ? (
+            <div className="mb-3">
+              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-1">
+                <div className="h-full bg-[#38BDF8] transition-all duration-300" style={{ width: `${downloadPercent}%` }}></div>
+              </div>
+              <span className="text-[10px] text-slate-600">{modelPickerMessage}</span>
+            </div>
+          ) : null}
+          {detectionResult && downloadPercent === null ? (
+            <div className={`rounded-lg p-2 mb-3 ${detectionResult.hasPerson ? 'bg-red-900/30 border border-red-800/50' : 'bg-slate-800/50 border border-slate-700/50'}`}>
+              <div className={`text-[11px] font-bold ${detectionResult.hasPerson ? 'text-red-400' : 'text-slate-400'}`}>
+                {detectionResult.hasPerson ? `⚠ ${detectionResult.count} person(s) detected` : '✓ No intrusion'}
+              </div>
+              {detectionResult.topDetection ? (
+                <div className="text-[10px] text-slate-600">{Math.round(detectionResult.topDetection.confidence * 100)}% confidence</div>
+              ) : null}
+            </div>
+          ) : null}
+          {downloadPercent === null ? (
+            <div className="flex flex-col gap-1.5">
+              <button onClick={() => { setModelPickerResult(null); setModelPickerMessage(''); setShowModelPicker(true); }}
+                className="text-[10px] font-bold py-2 px-3 rounded bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all text-left flex items-center gap-2">
+                <Upload className="w-3 h-3" />{modelName ? 'Change model' : 'Load model'}
+              </button>
+              <label className="text-[10px] font-bold py-2 px-3 rounded bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all cursor-pointer flex items-center gap-2">
+                <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
+                <Video className="w-3 h-3" />{uploadedVideoUrl ? 'Change video' : 'Upload video'}
+              </label>
+              <button onClick={handleRunDetection} disabled={!modelName || isRunning}
+                className="text-[10px] font-bold py-2 px-3 rounded bg-[#38BDF8]/10 border border-[#38BDF8]/30 text-[#38BDF8] hover:bg-[#38BDF8]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2">
+                {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+                {isRunning ? 'Detecting…' : 'Run detection'}
+              </button>
+            </div>
+          ) : null}
+        </div>
+
         <div className="px-4 pb-8 flex flex-col gap-4">
             <button className="w-full bg-[#BE123C] hover:bg-[#E11D48] text-white font-bold py-3.5 rounded-md shadow-[0_0_20px_rgba(190,18,60,0.4)] transition-all uppercase tracking-widest text-xs">
                 Initiate Lockdown
@@ -183,12 +291,13 @@ export default function SecurityDashboard() {
                 <div className="flex-1 flex flex-col gap-6">
                     {/* Video Feed */}
                     <div className="flex-1 bg-black rounded-xl border border-slate-800 relative overflow-hidden group">
-                        <video 
-                            src="/videos/intrusion.mp4" 
-                            autoPlay 
-                            loop 
-                            muted 
-                            playsInline 
+                        <video
+                            ref={videoRef}
+                            src={uploadedVideoUrl || "/videos/intrusion.mp4"}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
                             className="w-full h-full object-cover grayscale opacity-80 mix-blend-screen"
                         />
                         {/* Overlay Gradient */}
@@ -361,6 +470,58 @@ export default function SecurityDashboard() {
         </main>
 
       </div>
+
+      {/* Model picker modal */}
+      {showModelPicker ? (
+        <div className="model-picker" onClick={(e) => { if (e.target === e.currentTarget && downloadPercent === null) setShowModelPicker(false); }}>
+          <div className="model-picker__dialog">
+            {modelPickerResult === null && downloadPercent === null ? (
+              <>
+                <p className="model-picker__title">Load Person/Intrusion Model</p>
+                <p className="model-picker__label">Choose how to load the YOLO COCO person ONNX model.</p>
+                <div className="model-picker__options">
+                  <label className="model-picker__option">
+                    <input type="file" accept=".onnx" style={{ display: 'none' }} onChange={handleLocalModelUpload} />
+                    <span className="model-picker__btn">Upload local .onnx file</span>
+                  </label>
+                  <span className="model-picker__divider">or</span>
+                  <button className="model-picker__btn model-picker__btn--remote" onClick={handleLoadRemote}>
+                    Load from Hugging Face (remote)
+                  </button>
+                </div>
+                <div className="model-picker__footer">
+                  <button className="model-picker__cancel" onClick={() => setShowModelPicker(false)}>Cancel</button>
+                </div>
+              </>
+            ) : null}
+            {downloadPercent !== null ? (
+              <div className="model-picker__loading">
+                <p className="model-picker__title">Loading model…</p>
+                <div className="model-picker__progress-track">
+                  <div className="model-picker__progress-bar" style={{ width: `${downloadPercent}%` }} />
+                </div>
+                <p className="model-picker__label">{modelPickerMessage}</p>
+              </div>
+            ) : null}
+            {modelPickerResult !== null && downloadPercent === null ? (
+              <div className={`model-picker__result model-picker__result--${modelPickerResult}`}>
+                <span className="model-picker__result-icon">{modelPickerResult === 'success' ? '✓' : '✕'}</span>
+                <p className="model-picker__title">{modelPickerResult === 'success' ? 'Model loaded successfully' : 'Model did not load'}</p>
+                <p className="model-picker__label">{modelPickerMessage}</p>
+                <div className="model-picker__footer">
+                  {modelPickerResult === 'error' ? (
+                    <button className="model-picker__btn model-picker__btn--remote" style={{ width: 'auto', padding: '8px 16px' }}
+                      onClick={() => { setModelPickerResult(null); setModelPickerMessage(''); }}>Try again</button>
+                  ) : null}
+                  <button className="model-picker__cancel" onClick={() => { setShowModelPicker(false); setModelPickerResult(null); }}>
+                    {modelPickerResult === 'success' ? 'Close' : 'Cancel'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

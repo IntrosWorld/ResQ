@@ -1,12 +1,76 @@
-import React from 'react';
-import { 
-  Shield, Bell, User, LayoutDashboard, AlertTriangle, Video, Map, 
-  BarChart, Settings, LifeBuoy, ScrollText, EyeOff, AlertCircle, 
-  Users, Activity, ScanLine, Lock, Star, Navigation2, Info, Phone, 
-  Video as VideoIcon, ArrowUpRight, ArrowRight, Mic, PersonStanding, Home
+import React, { useRef, useState } from 'react';
+import {
+  Shield, Bell, User, LayoutDashboard, AlertTriangle, Video, Map,
+  BarChart, Settings, LifeBuoy, ScrollText, EyeOff, AlertCircle,
+  Users, Activity, ScanLine, Lock, Star, Navigation2, Info, Phone,
+  Video as VideoIcon, ArrowUpRight, ArrowRight, Mic, PersonStanding, Home,
+  ScanEye, Upload, Play, Loader2
 } from 'lucide-react';
+import { hasLoadedYoloHazardModel, loadYoloHazardModel, loadYoloHazardModelFromUrl, runYoloHazardDetection } from '../../../ml/yoloHazardModel';
+import type { CctvDetectionResult } from '../../../../shared/cctvDetection';
+
+const REMOTE_MODEL_URL = 'https://huggingface.co/Snaptrope/resq/resolve/main/resq-fire-smoke-yolo.onnx';
 
 export default function FireEmergencyDashboard() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState('');
+  const [modelName, setModelName] = useState('');
+  const [downloadPercent, setDownloadPercent] = useState<number | null>(null);
+  const [modelPickerResult, setModelPickerResult] = useState<'success' | 'error' | null>(null);
+  const [modelPickerMessage, setModelPickerMessage] = useState('');
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [detectionResult, setDetectionResult] = useState<CctvDetectionResult | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+
+  function handleVideoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (uploadedVideoUrl) URL.revokeObjectURL(uploadedVideoUrl);
+    setUploadedVideoUrl(URL.createObjectURL(file));
+    setDetectionResult(null);
+  }
+
+  async function handleLoadRemote() {
+    setModelPickerResult(null); setModelPickerMessage(''); setDownloadPercent(0);
+    try {
+      await loadYoloHazardModelFromUrl(REMOTE_MODEL_URL, (pct) => {
+        setDownloadPercent(pct);
+        setModelPickerMessage(pct < 100 ? `Downloading… ${pct}%` : 'Compiling model…');
+      });
+      setDownloadPercent(null); setModelName('Fire/Smoke YOLO (HuggingFace)');
+      setModelPickerResult('success'); setModelPickerMessage('Model loaded successfully.');
+      setTimeout(() => setShowModelPicker(false), 1200);
+    } catch (err) {
+      setDownloadPercent(null);
+      setModelPickerResult('error');
+      setModelPickerMessage('Model did not load. Check connection or upload manually.');
+    }
+  }
+
+  async function handleLocalModelUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    setModelPickerResult(null); setModelPickerMessage('Reading file…'); setDownloadPercent(50);
+    try {
+      await loadYoloHazardModel(file);
+      setDownloadPercent(null); setModelName(file.name);
+      setModelPickerResult('success'); setModelPickerMessage('Model loaded successfully.');
+      setTimeout(() => setShowModelPicker(false), 1200);
+    } catch {
+      setDownloadPercent(null);
+      setModelPickerResult('error'); setModelPickerMessage('Model did not load. Use a valid YOLO ONNX file.');
+    }
+  }
+
+  async function handleRunDetection() {
+    if (!videoRef.current || !hasLoadedYoloHazardModel()) return;
+    setIsRunning(true);
+    try {
+      const result = await runYoloHazardDetection(videoRef.current);
+      setDetectionResult(result);
+    } catch { /* ignore */ }
+    setIsRunning(false);
+  }
+
   return (
     <div className="flex h-screen w-screen bg-[#F4F6F5] font-paragraph text-[#2A4B41] overflow-hidden">
       {/* Sidebar */}
@@ -53,6 +117,56 @@ export default function FireEmergencyDashboard() {
             Settings
           </a>
         </nav>
+
+        {/* AI Model Panel */}
+        <div className="border-t border-white/10 px-4 py-4">
+          <div className="text-[9px] font-bold tracking-widest text-[#6BA88D] uppercase mb-3 flex items-center gap-2">
+            <ScanEye className="w-3 h-3" /> AI — Fire/Smoke
+          </div>
+          {/* Status */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${modelName ? 'bg-emerald-400' : 'bg-gray-600'}`}></div>
+            <span className="text-[10px] text-white/50 truncate">{modelName || 'No model loaded'}</span>
+          </div>
+          {/* Progress */}
+          {downloadPercent !== null ? (
+            <div className="mb-3">
+              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mb-1">
+                <div className="h-full bg-emerald-400 transition-all duration-300" style={{ width: `${downloadPercent}%` }}></div>
+              </div>
+              <span className="text-[10px] text-white/40">{modelPickerMessage}</span>
+            </div>
+          ) : null}
+          {/* Result */}
+          {detectionResult && downloadPercent === null ? (
+            <div className={`rounded-lg p-2 mb-3 ${detectionResult.isHazard ? 'bg-red-900/40 border border-red-700/50' : 'bg-emerald-900/40 border border-emerald-700/50'}`}>
+              <div className={`text-[11px] font-bold ${detectionResult.isHazard ? 'text-red-400' : 'text-emerald-400'}`}>
+                {detectionResult.isHazard ? `⚠ ${detectionResult.label}` : '✓ No hazard'}
+              </div>
+              {detectionResult.confidence > 0 ? (
+                <div className="text-[10px] text-white/40">{Math.round(detectionResult.confidence * 100)}% confidence</div>
+              ) : null}
+            </div>
+          ) : null}
+          {/* Buttons */}
+          {downloadPercent === null ? (
+            <div className="flex flex-col gap-1.5">
+              <button onClick={() => { setModelPickerResult(null); setModelPickerMessage(''); setShowModelPicker(true); }}
+                className="text-[10px] font-bold py-2 px-3 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all text-left flex items-center gap-2">
+                <Upload className="w-3 h-3" />{modelName ? 'Change model' : 'Load model'}
+              </button>
+              <label className="text-[10px] font-bold py-2 px-3 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all cursor-pointer flex items-center gap-2">
+                <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
+                <Video className="w-3 h-3" />{uploadedVideoUrl ? 'Change video' : 'Upload video'}
+              </label>
+              <button onClick={handleRunDetection} disabled={!modelName || isRunning}
+                className="text-[10px] font-bold py-2 px-3 rounded-lg bg-yellow-500/15 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/25 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2">
+                {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+                {isRunning ? 'Detecting…' : 'Run detection'}
+              </button>
+            </div>
+          ) : null}
+        </div>
 
         {/* Sidebar Footer */}
         <div className="p-6 pt-0 flex flex-col gap-4">
@@ -179,12 +293,13 @@ export default function FireEmergencyDashboard() {
                 
                 {/* Live Feed Video */}
                 <div className="absolute inset-0 flex items-center justify-center bg-black overflow-hidden">
-                  <video 
-                    src="https://res.cloudinary.com/dbnnd43kl/video/upload/v1777321354/From_KlickPin_CF_Engine_55_57_Arrived___New_photo_download_Scammer_pictures_Real_life_video_-_Pin-1086141635137543474_uvuaig.mp4" 
-                    autoPlay 
-                    loop 
-                    muted 
-                    playsInline 
+                  <video
+                    ref={videoRef}
+                    src={uploadedVideoUrl || "https://res.cloudinary.com/dbnnd43kl/video/upload/v1777321354/From_KlickPin_CF_Engine_55_57_Arrived___New_photo_download_Scammer_pictures_Real_life_video_-_Pin-1086141635137543474_uvuaig.mp4"}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
                     className="w-full h-full object-cover opacity-80"
                   />
                   {/* Subtle scanline overlay */}
@@ -454,6 +569,58 @@ export default function FireEmergencyDashboard() {
           </div>
         </main>
       </div>
+
+      {/* Model picker modal */}
+      {showModelPicker ? (
+        <div className="model-picker" onClick={(e) => { if (e.target === e.currentTarget && downloadPercent === null) setShowModelPicker(false); }}>
+          <div className="model-picker__dialog">
+            {modelPickerResult === null && downloadPercent === null ? (
+              <>
+                <p className="model-picker__title">Load Fire/Smoke Model</p>
+                <p className="model-picker__label">Choose how to load the YOLO fire/smoke ONNX model.</p>
+                <div className="model-picker__options">
+                  <label className="model-picker__option">
+                    <input type="file" accept=".onnx" style={{ display: 'none' }} onChange={handleLocalModelUpload} />
+                    <span className="model-picker__btn">Upload local .onnx file</span>
+                  </label>
+                  <span className="model-picker__divider">or</span>
+                  <button className="model-picker__btn model-picker__btn--remote" onClick={handleLoadRemote}>
+                    Load from Hugging Face (remote)
+                  </button>
+                </div>
+                <div className="model-picker__footer">
+                  <button className="model-picker__cancel" onClick={() => setShowModelPicker(false)}>Cancel</button>
+                </div>
+              </>
+            ) : null}
+            {downloadPercent !== null ? (
+              <div className="model-picker__loading">
+                <p className="model-picker__title">Loading model…</p>
+                <div className="model-picker__progress-track">
+                  <div className="model-picker__progress-bar" style={{ width: `${downloadPercent}%` }} />
+                </div>
+                <p className="model-picker__label">{modelPickerMessage}</p>
+              </div>
+            ) : null}
+            {modelPickerResult !== null && downloadPercent === null ? (
+              <div className={`model-picker__result model-picker__result--${modelPickerResult}`}>
+                <span className="model-picker__result-icon">{modelPickerResult === 'success' ? '✓' : '✕'}</span>
+                <p className="model-picker__title">{modelPickerResult === 'success' ? 'Model loaded successfully' : 'Model did not load'}</p>
+                <p className="model-picker__label">{modelPickerMessage}</p>
+                <div className="model-picker__footer">
+                  {modelPickerResult === 'error' ? (
+                    <button className="model-picker__btn model-picker__btn--remote" style={{ width: 'auto', padding: '8px 16px' }}
+                      onClick={() => { setModelPickerResult(null); setModelPickerMessage(''); }}>Try again</button>
+                  ) : null}
+                  <button className="model-picker__cancel" onClick={() => { setShowModelPicker(false); setModelPickerResult(null); }}>
+                    {modelPickerResult === 'success' ? 'Close' : 'Cancel'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
